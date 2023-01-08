@@ -1,6 +1,6 @@
 package org.example;
 
-public class Coordinates<Lon,Lat> {
+public class Coordinates<Lat,Lon> {
 
     private final Lon longitude;
     private final Lat latitude;
