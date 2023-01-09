@@ -27,17 +27,17 @@ public class GarbageOptimazer {
      * @return List < List < Double >> - матрица расстояний.
      */
     public List<List<Double>> createDistanceMatrix() throws IOException {
-        Map<String, Coordinates<Double,Double>> garagesInfo = new DataHandler().getCoordinates(Storage.Garage);
-        Map<String, Coordinates<Double,Double>> containersInfo = new DataHandler().getCoordinates(Storage.Containers);
+        List<Garage> garagesInfo = new DataHandler().getGarage();
+        List<Containers> containersInfo = new DataHandler().getContainers();
         List<List<Double>> distanceMatrix = new ArrayList<>();
-        for (Map.Entry<String,Coordinates<Double,Double>> garage : garagesInfo.entrySet()) {
+        for (Garage garage : garagesInfo) {
             List<Double> row = new ArrayList<>();
-            Coordinates<Double,Double> list = garage.getValue();
+            Coordinates<Double,Double> list = garage.getCoordinates();
             Coordinate lat = Coordinate.fromDegrees(list.getLatitude());
             Coordinate lng = Coordinate.fromDegrees(list.getLatitude());
             Point objFrom = Point.at(lat, lng);
-            for (Map.Entry<String,Coordinates<Double,Double>> container : containersInfo.entrySet()) {
-                list = container.getValue();
+            for (Containers container : containersInfo) {
+                list = container.getCoordinates();
                 lat = Coordinate.fromDegrees(list.getLatitude());
                 lng = Coordinate.fromDegrees(list.getLatitude());
                 Point objTo = Point.at(lat, lng);

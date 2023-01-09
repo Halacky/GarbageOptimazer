@@ -1,13 +1,21 @@
 package org.example;
 
-public class Garage {
-    private String Address;
-    private int TypeOfGrab;
-    private Car Car;
+import java.util.List;
 
+public class Garage {
+    private double Id;
+    private String Address;
+    private List<Car> Cars;
     private Coordinates<Double,Double> Coordinates;
 
-    public Garage(){
+    public Garage(double id, String address, Coordinates<Double,Double> coordinates){
+        Id = id;
+        Address = address;
+        Coordinates = coordinates;
+        Cars = null;
+    }
 
+    public Coordinates<Double, Double> getCoordinates() {
+        return Coordinates;
     }
 }

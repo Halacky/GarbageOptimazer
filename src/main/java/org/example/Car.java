@@ -6,6 +6,8 @@ public class Car {
     private double M3;
     private double Centroid;
     private double Capacity;
+    private int TypeOfGrab;
+
 
     public Car(){
         Centroid = 0;

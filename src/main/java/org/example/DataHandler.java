@@ -53,68 +53,69 @@ public class DataHandler {
      *     <li>Столбец с индексом indexLat - широта гаража</li>
      *     <li>Столбец с индексом indexLon - долгота гаража</li>
      * </ol>
-     *
-     * @param path Хранит в себе путь до файла, с которым предстоит работать. String
      * @return Map - key: Адрес, value: Координаты
      * @throws IOException Ошибки возникшие при чтении файла
      */
-    protected Map<String, Coordinates<Double, Double>> getCoordinates(String path) throws IOException {
+    protected List<Garage> getGarage() throws IOException {
         // Получаем первый лист Excel файла
-        XSSFSheet sheet = createExcelHandler(path);
-        // Создаем словарь типа <key: Адрес, value: Координаты>
-        Map<String, Coordinates<Double, Double>> objectFrom = new HashMap<>();
-        // iterate on rows
+        XSSFSheet sheet = createExcelHandler( Storage.Garage);
+        List<Garage> garages = new ArrayList<>();
+        String rowStr = "";
         for (Row row : sheet) {
-            // iterate on cells for the current row
-            Iterator<Cell> cellIterator = row.cellIterator();
-            Coordinates<Double, Double> coord;
-            String rowStr = "";
-            while (cellIterator.hasNext()) {
-                Cell cell = cellIterator.next();
-                rowStr += cell.toString() + "~";
-            }
+            rowStr = iterateRow(row);
+            int indexLat = 2;
+            int indexLon = 3;
+            int indexAddress = 1;
+            int indexGarageID = 0;
 
-            int indexLat = 0;
-            int indexLon = 0;
-            int indexAddress = 0;
-
-            if (Objects.equals(path, Storage.Garage)) {
-                indexLat = 1;
-                indexLon = 2;
-            } else if (Objects.equals(path, Storage.Containers)) {
-                indexLat = 10;
-                indexLon = 11;
-                indexAddress = 3;
-            }
             double lat = Double.parseDouble(rowStr.split("~")[indexLat]);
             double lon = Double.parseDouble(rowStr.split("~")[indexLon]);
-            coord = new Coordinates<>(lat, lon);
-            objectFrom.put(rowStr.split("~")[indexAddress], coord);
+            double id = Double.parseDouble(rowStr.split("~")[indexGarageID]);
+            String address = rowStr.split("~")[indexAddress];
+            Coordinates<Double, Double> coord = new Coordinates<>(lat, lon);
+            garages.add(new Garage(id, address, coord));
         }
-
         workbook.close();
         fis.close();
 
-        return objectFrom;
+        return garages;
     }
 
-    protected List<Garage> getGaragesInfo() throws IOException {
+    protected List<Containers> getContainers() throws IOException {
         // Получаем первый лист Excel файла
-        XSSFSheet sheet = createExcelHandler(Storage.Cars);
-        List<Garage> garages = new ArrayList<>();
-
+        XSSFSheet sheet = createExcelHandler(Storage.Containers);
+        List<Containers> containers = new ArrayList<>();
+        String rowStr = "";
         for (Row row : sheet) {
-            // iterate on cells for the current row
-            Iterator<Cell> cellIterator = row.cellIterator();
-            Coordinates<Double, Double> coord;
-            String rowStr = "";
-            while (cellIterator.hasNext()) {
-                Cell cell = cellIterator.next();
-                rowStr += cell.toString() + "~";
-            }
+            rowStr = iterateRow(row);
+            int indexLat = 10;
+            int indexLon = 11;
+            int indexAddress = 3;
+            int indexCount = 12;
+            int indexVolume = 13;
 
-
+            double lat = Double.parseDouble(rowStr.split("~")[indexLat]);
+            double lon = Double.parseDouble(rowStr.split("~")[indexLon]);
+            int count = Integer.parseInt(rowStr.split("~")[indexCount]);
+            double volume = Double.parseDouble(rowStr.split("~")[indexVolume]);
+            String address = rowStr.split("~")[indexAddress];
+            Coordinates<Double, Double> coord = new Coordinates<>(lat, lon);
+            containers.add(new Containers(address, coord,volume,count));
         }
-        return null;
+        workbook.close();
+        fis.close();
+
+        return containers;
+    }
+
+    private String iterateRow(Row row){
+        // iterate on cells for the current row
+        Iterator<Cell> cellIterator = row.cellIterator();
+        String rowStr = "";
+        while (cellIterator.hasNext()) {
+            Cell cell = cellIterator.next();
+            rowStr += cell.toString() + "~";
+        }
+        return rowStr;
     }
 }
