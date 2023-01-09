@@ -9,7 +9,7 @@ public class Main
     public static void main( String[] args )
     {
         try {
-            List<List<Double>> garagesInfo = new DataHandler().createDistanceMatrix();
+            List<List<Double>> garagesInfo = new GarbageOptimazer().createDistanceMatrix();
             System.out.println();
         } catch (IOException e) {
             throw new RuntimeException(e);

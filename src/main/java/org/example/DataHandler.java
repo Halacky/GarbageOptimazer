@@ -20,12 +20,6 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
  * @since   2022-12-25
  */
 public class DataHandler {
-    // Статические поля, хранящие в себе абсолютные ссылки, на локально расположенные файлы с данными
-    private static final String Garage  = "C:\\Users\\gR9r\\Desktop\\Мусоровозы\\Data\\Garages.xlsx";  // Файл с информацией о гаражах
-    private static final String Polygons  = "C:\\Users\\gR9r\\Desktop\\Мусоровозы\\Data\\Polygons.xlsx"; // Файл с информацией о полигонах
-    private static final String Containers  = "C:\\Users\\gR9r\\Desktop\\Мусоровозы\\Data\\Containers.xlsx"; // Файл с информацией о контейнерах
-    private static final String Cars  = "C:\\Users\\gR9r\\Desktop\\Мусоровозы\\Data\\Cars.xlsx"; // Файл с информацией о машинах
-
 
     // Поля для создания объекта ридера Excel файлов
     private FileInputStream fis;
@@ -34,9 +28,10 @@ public class DataHandler {
 
     /**
      * Метод предназначенный для инициализации объекта, необходимого для чтения файлов.
+     *
      * @param path Параметр типа String. Хранит в себе путь до файла, с которым предстоит работать
-     * @exception IOException Ошибки возникшие при чтении файла
      * @return Возвращает объект типа XSSFSheet, который хранит в себе первый лист Excel.
+     * @throws IOException Ошибки возникшие при чтении файла
      */
     private XSSFSheet createExcelHandler(String path) throws IOException {
         // Получение доступа к файлу, указанному в пути
@@ -58,19 +53,21 @@ public class DataHandler {
      *     <li>Столбец с индексом indexLat - широта гаража</li>
      *     <li>Столбец с индексом indexLon - долгота гаража</li>
      * </ol>
+     *
      * @param path Хранит в себе путь до файла, с которым предстоит работать. String
-     * @exception IOException Ошибки возникшие при чтении файла
-     * @return Map < String, Coordinates< Double, Double > > - <Адрес гаража, Координаты гаража>.
+     * @return Map - key: Адрес, value: Координаты
+     * @throws IOException Ошибки возникшие при чтении файла
      */
-    private Map<String, Coordinates<Double, Double>> getGaragesCoordinates(String path) throws IOException {
-
+    protected Map<String, Coordinates<Double, Double>> getCoordinates(String path) throws IOException {
+        // Получаем первый лист Excel файла
         XSSFSheet sheet = createExcelHandler(path);
+        // Создаем словарь типа <key: Адрес, value: Координаты>
         Map<String, Coordinates<Double, Double>> objectFrom = new HashMap<>();
         // iterate on rows
         for (Row row : sheet) {
             // iterate on cells for the current row
             Iterator<Cell> cellIterator = row.cellIterator();
-            Coordinates<Double,Double> coord;
+            Coordinates<Double, Double> coord;
             String rowStr = "";
             while (cellIterator.hasNext()) {
                 Cell cell = cellIterator.next();
@@ -81,18 +78,18 @@ public class DataHandler {
             int indexLon = 0;
             int indexAddress = 0;
 
-            if (Objects.equals(path, Garage)){
+            if (Objects.equals(path, Storage.Garage)) {
                 indexLat = 1;
                 indexLon = 2;
-            } else if (Objects.equals(path, Containers)) {
+            } else if (Objects.equals(path, Storage.Containers)) {
                 indexLat = 10;
                 indexLon = 11;
                 indexAddress = 3;
             }
             double lat = Double.parseDouble(rowStr.split("~")[indexLat]);
             double lon = Double.parseDouble(rowStr.split("~")[indexLon]);
-            coord = new Coordinates<>(lat,lon);
-            objectFrom.put(rowStr.split("~")[indexAddress],coord);
+            coord = new Coordinates<>(lat, lon);
+            objectFrom.put(rowStr.split("~")[indexAddress], coord);
         }
 
         workbook.close();
@@ -101,33 +98,23 @@ public class DataHandler {
         return objectFrom;
     }
 
-    /**
-     * Метод предназначенный для создания матрицы расстояний.
-     * @exception IOException Ошибки возникшие при чтении файла
-     * @return List < List < Double >> - матрица расстояний.
-     */
-    public List<List<Double>> createDistanceMatrix() throws IOException {
-        Map<String, Coordinates<Double,Double>> garagesInfo = new DataHandler().getGaragesCoordinates(Garage);
-        Map<String, Coordinates<Double,Double>> containersInfo = new DataHandler().getGaragesCoordinates(Containers);
-        List<List<Double>> distanceMatrix = new ArrayList<>();
-        for (Map.Entry<String,Coordinates<Double,Double>> garage : garagesInfo.entrySet()) {
-            List<Double> row = new ArrayList<>();
-            Coordinates<Double,Double> list = garage.getValue();
-            Coordinate lat = Coordinate.fromDegrees(list.getLatitude());
-            Coordinate lng = Coordinate.fromDegrees(list.getLatitude());
-            Point objFrom = Point.at(lat, lng);
-            for (Map.Entry<String,Coordinates<Double,Double>> container : containersInfo.entrySet()) {
-                list = container.getValue();
-                lat = Coordinate.fromDegrees(list.getLatitude());
-                lng = Coordinate.fromDegrees(list.getLatitude());
-                Point objTo = Point.at(lat, lng);
-                double distance = EarthCalc.haversine.distance(objFrom, objTo); //in meters
-                row.add(distance);
-            }
-            distanceMatrix.add(row);
-        }
-        System.out.println(distanceMatrix.get(0));
-        return distanceMatrix;
-    }
+    protected List<Garage> getGaragesInfo() throws IOException {
+        // Получаем первый лист Excel файла
+        XSSFSheet sheet = createExcelHandler(Storage.Cars);
+        List<Garage> garages = new ArrayList<>();
 
+        for (Row row : sheet) {
+            // iterate on cells for the current row
+            Iterator<Cell> cellIterator = row.cellIterator();
+            Coordinates<Double, Double> coord;
+            String rowStr = "";
+            while (cellIterator.hasNext()) {
+                Cell cell = cellIterator.next();
+                rowStr += cell.toString() + "~";
+            }
+
+
+        }
+        return null;
+    }
 }
