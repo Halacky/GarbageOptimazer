@@ -28,7 +28,6 @@ public class DataHandler {
 
     /**
      * Метод предназначенный для инициализации объекта, необходимого для чтения файлов.
-     *
      * @param path Параметр типа String. Хранит в себе путь до файла, с которым предстоит работать
      * @return Возвращает объект типа XSSFSheet, который хранит в себе первый лист Excel.
      * @throws IOException Ошибки возникшие при чтении файла
@@ -45,18 +44,19 @@ public class DataHandler {
     }
 
     /**
-     * Метод предназначенный для получения координат всех объектов.
+     * Метод предназначенный для получения информации о всех гаражах.
      * Требования к обрабатываемому документу:
      * <ol>
      *     <li>Остутствие заглавия документа (чтение начинается с ячейки A1)</li>
      *     <li>Столбец с индексом indexAddress - адрес гаража</li>
      *     <li>Столбец с индексом indexLat - широта гаража</li>
      *     <li>Столбец с индексом indexLon - долгота гаража</li>
+     *     <li>Столбец с индексом indexGarageID - Идентификатор гаража</li>
      * </ol>
-     * @return Map - key: Адрес, value: Координаты
+     * @return Список объектов типа Garage
      * @throws IOException Ошибки возникшие при чтении файла
      */
-    protected List<Garage> getGarage() throws IOException {
+    private List<Garage> getGarage() throws IOException {
         // Получаем первый лист Excel файла
         XSSFSheet sheet = createExcelHandler( Storage.Garage);
         List<Garage> garages = new ArrayList<>();
@@ -78,9 +78,45 @@ public class DataHandler {
         workbook.close();
         fis.close();
 
+
         return garages;
     }
 
+    /**
+     * Метод предназначенный для наполнения гаражей информацией об находящихся в них машинах.
+     * @return Список объектов типа Garage
+     * @throws IOException Ошибки возникшие при чтении файла
+     */
+    public List<Garage> fillGarage() throws IOException {
+        List<Garage> garages = getGarage();
+        List<Car> cars = getCars();
+        for(Garage garage: garages) {
+            List<Car> tmpCars = new ArrayList<>();
+            for (Car car : cars) {
+                if (garage.getId()==car.getGarageId()){
+                    car.setCoordinates(garage.getCoordinates());
+                    tmpCars.add(car);
+                }
+            }
+            garage.setCars(tmpCars);
+        }
+        return garages;
+    }
+
+    /**
+     * Метод предназначенный для получения информации о всех контейнерах.
+     * Требования к обрабатываемому документу:
+     * <ol>
+     *     <li>Остутствие заглавия документа (чтение начинается с ячейки A1)</li>
+     *     <li>Столбец с индексом indexAddress - адрес контейнера</li>
+     *     <li>Столбец с индексом indexLat - широта контейнера</li>
+     *     <li>Столбец с индексом indexLon - долгота контейнера</li>
+     *     <li>Столбец с индексом indexCount - количество контейнеров</li>
+     *     <li>Столбец с индексом indexVolume - объем контейнера</li>
+     * </ol>
+     * @return Список объектов типа Containers
+     * @throws IOException Ошибки возникшие при чтении файла
+     */
     protected List<Containers> getContainers() throws IOException {
         // Получаем первый лист Excel файла
         XSSFSheet sheet = createExcelHandler(Storage.Containers);
@@ -108,6 +144,53 @@ public class DataHandler {
         return containers;
     }
 
+    /**
+     * Метод предназначенный для получения информации о всех машинах.
+     * Требования к обрабатываемому документу:
+     * <ol>
+     *     <li>Остутствие заглавия документа (чтение начинается с ячейки A1)</li>
+     *     <li>Столбец с индексом indexNumber - гос. номер машины</li>
+     *     <li>Столбец с индексом indexTypeLoad - тип погрузки</li>
+     *     <li>Столбец с индексом indexGarage - идентификатор гаража</li>
+     *     <li>Столбец с индексом indexLoadCapacity - грузоподъемность</li>
+     *     <li>Столбец с индексом indexFuel - тип топлива</li>
+     *     <li>Столбец с индексом indexSchedule - график работы</li>
+     * </ol>
+     * @return Список объектов типа Car
+     * @throws IOException Ошибки возникшие при чтении файла
+     */
+    private List<Car> getCars() throws IOException {
+        // Получаем первый лист Excel файла
+        XSSFSheet sheet = createExcelHandler(Storage.Cars);
+        List<Car> cars = new ArrayList<>();
+        String rowStr = "";
+        for (Row row : sheet) {
+            rowStr = iterateRow(row);
+            int indexNumber = 2;
+            int indexTypeLoad = 7;
+            int indexGarage = 12;
+            int indexLoadCapacity= 15;
+            int indexFuel = 17;
+            int indexSchedule = 18;
+
+            String number = rowStr.split("~")[indexNumber];
+            double loadType = Double.parseDouble(rowStr.split("~")[indexTypeLoad]);
+            double garageId = Double.parseDouble(rowStr.split("~")[indexGarage]);
+            double capacity = Double.parseDouble(rowStr.split("~")[indexLoadCapacity]);
+            String fuelType = rowStr.split("~")[indexFuel];
+            String schedule = rowStr.split("~")[indexSchedule];
+            cars.add(new Car(number, capacity,loadType,garageId,fuelType,schedule));
+        }
+        workbook.close();
+        fis.close();
+
+        return cars;
+    }
+
+    /**
+     * Метод предназначенный для итерации внутри строки.
+     * @return Строковое значение всех элемнтов строки документа. Разделитель "~"
+     */
     private String iterateRow(Row row){
         // iterate on cells for the current row
         Iterator<Cell> cellIterator = row.cellIterator();

@@ -14,6 +14,9 @@ public class GarbageOptimazer {
 
     /**
      * Метод предназначенный для подсчета метрик М1, М2, М3.
+     * @param q Расход топлива на 1 км
+     * @param s Расстояние, которое необходимо пройти
+     * @param v Свободный объем кузова
      * @return Array Double - массив метрик.
      */
     private double calculateMMetrix(double q, double s, double v){
@@ -27,7 +30,7 @@ public class GarbageOptimazer {
      * @return List < List < Double >> - матрица расстояний.
      */
     public List<List<Double>> createDistanceMatrix() throws IOException {
-        List<Garage> garagesInfo = new DataHandler().getGarage();
+        List<Garage> garagesInfo = new DataHandler().fillGarage();
         List<Containers> containersInfo = new DataHandler().getContainers();
         List<List<Double>> distanceMatrix = new ArrayList<>();
         for (Garage garage : garagesInfo) {
