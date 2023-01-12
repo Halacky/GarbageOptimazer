@@ -90,6 +90,7 @@ public class DataHandler {
     public List<Garage> fillGarage() throws IOException {
         List<Garage> garages = getGarage();
         List<Car> cars = getCars();
+
         for(Garage garage: garages) {
             List<Car> tmpCars = new ArrayList<>();
             for (Car car : cars) {

@@ -1,6 +1,7 @@
 package org.example;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * <h1>Класс сущности "гараж"</h1>

@@ -59,4 +59,8 @@ public class Car {
     public void setCapacity(double capacity) {
         Capacity = capacity;
     }
+
+    public double getTypeOfGrab() {
+        return TypeOfGrab;
+    }
 }

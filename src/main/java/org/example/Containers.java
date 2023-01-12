@@ -10,9 +10,11 @@ package org.example;
 public class Containers {
     private String Address; // Адрес КП
     private Coordinates<Double, Double> Coordinates; // Коордианты КП
+    private double TypeOfGrap;
     private double Volume; // Объем КП
     private int Count; // Кол-во КП
     private double AllVolume; // Суммарный объем КП
+    private boolean IsCater; // КП обслужена или нет
 
     /**
      * @param address Адрес КП
@@ -26,6 +28,7 @@ public class Containers {
         Volume = volume;
         Count = count;
         AllVolume = Volume * Count;
+        IsCater = false;
     }
     public Coordinates<Double, Double> getCoordinates() {
         return Coordinates;
