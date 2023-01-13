@@ -7,17 +7,16 @@ import jdk.jshell.spi.SPIResolutionException;
 
 import java.io.IOException;
 import java.lang.reflect.Array;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 
 public class GarbageOptimazer {
 
     private List<Garage> Garages;
-    private List<Containers> Containers;
+    private List<Containers> _Containers;
+    private List<List<Double>> DistanceMatrix;
+    private Coordinates<Double,Double> Fcy;
 
     /**
      * Метод предназначенный для подсчета метрик М1, М2, М3.
@@ -44,7 +43,7 @@ public class GarbageOptimazer {
      */
     public List<List<Double>> createDistanceMatrix() throws IOException {
         Garages = new DataHandler().fillGarage();
-        Containers = new DataHandler().getContainers();
+        _Containers = new DataHandler().getContainers();
         List<List<Double>> distanceMatrix = new ArrayList<>();
         for (Garage garage : Garages) {
             List<Double> row = new ArrayList<>();
@@ -52,7 +51,7 @@ public class GarbageOptimazer {
             Coordinate lat = Coordinate.fromDegrees(list.getLatitude());
             Coordinate lng = Coordinate.fromDegrees(list.getLatitude());
             Point objFrom = Point.at(lat, lng);
-            for (Containers container : Containers) {
+            for (Containers container : _Containers) {
                 list = container.getCoordinates();
                 lat = Coordinate.fromDegrees(list.getLatitude());
                 lng = Coordinate.fromDegrees(list.getLatitude());
@@ -62,8 +61,12 @@ public class GarbageOptimazer {
             }
             distanceMatrix.add(row);
         }
-        System.out.println(distanceMatrix.get(0));
+//        System.out.println(distanceMatrix.get(0));
+        DistanceMatrix = distanceMatrix;
+
+        Fcy = findFcy();
         return distanceMatrix;
+
     }
     /**
      * Метод предназначенный для рассчета расстония между двумя точками.
@@ -73,6 +76,31 @@ public class GarbageOptimazer {
      */
     protected double calculateDistance(Point objFrom, Point objTo){
         return EarthCalc.haversine.distance(objFrom, objTo);
+    }
+
+    private Coordinates<Double,Double> findFcy(){
+        int size = DistanceMatrix.get(0).size();
+        List<Double> sumDistance = new ArrayList<>(Collections.nCopies(size, 0.0));
+        System.out.println(sumDistance.size());
+        for (List<Double> distanceMatrix : DistanceMatrix) {
+            for (int i = 0; i < distanceMatrix.size(); i++) {
+                sumDistance.set(i,sumDistance.get(i)+distanceMatrix.get(i));
+            }
+        }
+        int maxDistance = getIndexOfLargest(sumDistance);
+        return _Containers.get(maxDistance).getCoordinates();
+    }
+
+    private int getIndexOfLargest(List<Double> array )
+    {
+        if ( array == null || array.size() == 0 ) return -1; // null or empty
+
+        int largest = 0;
+        for ( int i = 1; i < array.size(); i++ )
+        {
+            if ( array.get(i) > array.get(largest)) largest = i;
+        }
+        return largest; // position of the first largest found
     }
 
 }

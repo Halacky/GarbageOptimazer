@@ -10,6 +10,7 @@ public class Main
     {
         try {
             List<List<Double>> garagesInfo = new GarbageOptimazer().createDistanceMatrix();
+
 //            new DataHandler().fillGarage();
             System.out.println();
         } catch (IOException e) {
