@@ -61,10 +61,11 @@ public class GarbageOptimazer {
             }
             distanceMatrix.add(row);
         }
-//        System.out.println(distanceMatrix.get(0));
         DistanceMatrix = distanceMatrix;
 
         Fcy = findFcy();
+        System.out.println(Fcy);
+
         return distanceMatrix;
 
     }
@@ -88,19 +89,44 @@ public class GarbageOptimazer {
             }
         }
         int maxDistance = getIndexOfLargest(sumDistance);
+//        System.out.println(sumDistance);
+
+        List<Garage> optimalGarages = findOptimalGarages(maxDistance);
+        System.out.println(optimalGarages);
         return _Containers.get(maxDistance).getCoordinates();
+    }
+
+    private List<Garage> findOptimalGarages(int fcy){
+        List<Double> optimalGarageIndexes = new ArrayList<>();
+        List<Garage> optimalGarage = new ArrayList<>();
+        for (int i = 0; i<3; i++){
+            double tmpMin = Double.MAX_VALUE;
+            double g = 0.0;
+            double gMin = 0.0;
+            for (List<Double> distanceMatrix : DistanceMatrix) {
+                double current = distanceMatrix.get(fcy);
+                if (current < tmpMin & !(optimalGarageIndexes.contains(g))){
+                    tmpMin = distanceMatrix.get(fcy);
+                    gMin = g;
+                }
+                g++;
+            }
+            optimalGarageIndexes.add(gMin);
+            optimalGarage.add(Garages.get((int) gMin));
+        }
+        return optimalGarage;
     }
 
     private int getIndexOfLargest(List<Double> array )
     {
-        if ( array == null || array.size() == 0 ) return -1; // null or empty
+        if ( array == null || array.size() == 0 ) return -1;
 
         int largest = 0;
         for ( int i = 1; i < array.size(); i++ )
         {
             if ( array.get(i) > array.get(largest)) largest = i;
         }
-        return largest; // position of the first largest found
+        return largest;
     }
 
 }
