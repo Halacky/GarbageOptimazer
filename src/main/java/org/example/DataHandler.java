@@ -173,6 +173,7 @@ public class DataHandler {
             int indexLoadCapacity= 15;
             int indexFuel = 17;
             int indexSchedule = 18;
+            int indexConsum = 27;
 
             String number = rowStr.split("~")[indexNumber];
             double loadType = Double.parseDouble(rowStr.split("~")[indexTypeLoad]);
@@ -180,7 +181,8 @@ public class DataHandler {
             double capacity = Double.parseDouble(rowStr.split("~")[indexLoadCapacity]);
             String fuelType = rowStr.split("~")[indexFuel];
             String schedule = rowStr.split("~")[indexSchedule];
-            cars.add(new Car(number, capacity,loadType,garageId,fuelType,schedule));
+            double fuelConsum  =  Double.parseDouble(rowStr.split("~")[indexConsum]);
+            cars.add(new Car(number, capacity,loadType,garageId,fuelType,schedule,fuelConsum));
         }
         workbook.close();
         fis.close();

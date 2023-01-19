@@ -21,6 +21,7 @@ public class Car {
     private double GarageId; // Идентификатор гаража
     private String FuelType; // Тип топлива
     private String WorkSchedule; // График работы
+    private double FuelConsum; // Расход топлива на 1 км
 
     /**
      * @param number Гос. номер
@@ -30,7 +31,7 @@ public class Car {
      * @param fuelType Тип топлива
      * @param workSchedule График работы
      */
-    public Car(String number, double capacity,double typeOfGrab,double garageId, String fuelType,String workSchedule){
+    public Car(String number, double capacity,double typeOfGrab,double garageId, String fuelType,String workSchedule, double fuelConsum){
         Centroid = 0;
         Number = number;
         Capacity = capacity;
@@ -38,6 +39,7 @@ public class Car {
         GarageId = garageId;
         FuelType = fuelType;
         WorkSchedule = workSchedule;
+        FuelConsum = fuelConsum;
     }
 
     public double getCentroid() {
@@ -62,5 +64,17 @@ public class Car {
 
     public double getTypeOfGrab() {
         return TypeOfGrab;
+    }
+
+    public double getFuelConsum() {
+        return FuelConsum;
+    }
+
+    public double getCapacity() {
+        return Capacity;
+    }
+
+    public void setM3(double m3) {
+        M3 = m3;
     }
 }

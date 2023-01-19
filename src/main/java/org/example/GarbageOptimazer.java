@@ -17,22 +17,22 @@ public class GarbageOptimazer {
     private List<Containers> _Containers;
     private List<List<Double>> DistanceMatrix;
     private Coordinates<Double,Double> Fcy;
+    private int indexOfFcy;
 
     /**
      * Метод предназначенный для подсчета метрик М1, М2, М3.
-     * @param q Расход топлива на 1 км
-     * @param s Расстояние, которое необходимо пройти
-     * @param v Свободный объем кузова
+
      * @return Double[] - массив метрик.
      */
-    private double[] calculateMMetrix(double q, double s, double v){
-        double M1 = q;
-        double M2 = M1 / v;
-        double M3 = q / s*v;
+    private double[] calculateMMetrix(Car car, double v){
+        double M1 = car.getFuelConsum();
+        double M2 = M1 / car.getCapacity();
+        double M3 = M2*1/v;
         double[] MMetrix = new double[3];
         MMetrix[0] = M1;
         MMetrix[1] = M2;
         MMetrix[2] = M3;
+        car.setM3(M3);
         return MMetrix;
     }
 
@@ -64,7 +64,6 @@ public class GarbageOptimazer {
         DistanceMatrix = distanceMatrix;
 
         Fcy = findFcy();
-        System.out.println(Fcy);
 
         return distanceMatrix;
 
@@ -88,15 +87,23 @@ public class GarbageOptimazer {
                 sumDistance.set(i,sumDistance.get(i)+distanceMatrix.get(i));
             }
         }
-        int maxDistance = getIndexOfLargest(sumDistance);
-//        System.out.println(sumDistance);
 
-        List<Garage> optimalGarages = findOptimalGarages(maxDistance);
-        System.out.println(optimalGarages);
-        return _Containers.get(maxDistance).getCoordinates();
+        indexOfFcy = getIndexOfLargest(sumDistance);
+        List<Garage> optimalGarages = getOptimalGarages(indexOfFcy);
+        getBestCar(optimalGarages);
+        return _Containers.get(indexOfFcy).getCoordinates();
     }
 
-    private List<Garage> findOptimalGarages(int fcy){
+    private void getBestCar(List<Garage> optimalGarages){
+        for (Garage garage : optimalGarages){
+            for (Car car: garage.getCars()){
+                calculateMMetrix(car, DistanceMatrix.get((int)(garage.getId()-1)).get(indexOfFcy));
+            }
+        }
+        System.out.println();
+    }
+
+    private List<Garage> getOptimalGarages(int fcy){
         List<Double> optimalGarageIndexes = new ArrayList<>();
         List<Garage> optimalGarage = new ArrayList<>();
         for (int i = 0; i<3; i++){
