@@ -1,6 +1,7 @@
 package org.example;
 
 import java.io.IOException;
+import java.util.List;
 
 /**
  * <h1>Класс сущности "машина"</h1>
@@ -14,7 +15,7 @@ public class Car {
     private double M1; // М1 - метрика холостого хода
     private double M2; // М2 - метрика удельного расхода топлива
     private double M3; // М3 - модифицированная метрика М2
-    private double Centroid; // Центроид обрабатываемого класстера
+    private Coordinates<Double, Double> Centroid; // Центроид обрабатываемого класстера
     private double Capacity; // Грузоподъемность
     private double TypeOfGrab; // Тип пагрузки 1-Боковой, 2-Задний, 3-Бункеры, 4-универсальные
     private Coordinates<Double, Double> Coordinates; // Местоположение машины
@@ -22,6 +23,7 @@ public class Car {
     private String FuelType; // Тип топлива
     private String WorkSchedule; // График работы
     private double FuelConsum; // Расход топлива на 1 км
+    private List<Container> ServicesContainers;
 
     /**
      * @param number Гос. номер
@@ -32,7 +34,7 @@ public class Car {
      * @param workSchedule График работы
      */
     public Car(String number, double capacity,double typeOfGrab,double garageId, String fuelType,String workSchedule, double fuelConsum){
-        Centroid = 0;
+        Centroid = null;
         Number = number;
         Capacity = capacity;
         TypeOfGrab = typeOfGrab;
@@ -40,9 +42,10 @@ public class Car {
         FuelType = fuelType;
         WorkSchedule = workSchedule;
         FuelConsum = fuelConsum;
+        ServicesContainers = null;
     }
 
-    public double getCentroid() {
+    public Coordinates<Double, Double> getCentroid() {
         return Centroid;
     }
 
@@ -50,7 +53,7 @@ public class Car {
         return GarageId;
     }
 
-    public void setCentroid(double centroid) {
+    public void setCentroid(Coordinates<Double, Double> centroid) {
         Centroid = centroid;
     }
 
@@ -76,5 +79,20 @@ public class Car {
 
     public void setM3(double m3) {
         M3 = m3;
+    }
+
+    public double getM3() {
+        return M3;
+    }
+    public String getNumber() {
+        return Number;
+    }
+
+    public void setServicesContainers(List<Container> servicesContainers) {
+        ServicesContainers = servicesContainers;
+    }
+
+    public List<Container> getServicesContainers() {
+        return ServicesContainers;
     }
 }

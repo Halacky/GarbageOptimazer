@@ -5,7 +5,6 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.*;
 
-import com.grum.geocalc.*;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
@@ -118,10 +117,10 @@ public class DataHandler {
      * @return Список объектов типа Containers
      * @throws IOException Ошибки возникшие при чтении файла
      */
-    protected List<Containers> getContainers() throws IOException {
+    protected List<Container> getContainers() throws IOException {
         // Получаем первый лист Excel файла
         XSSFSheet sheet = createExcelHandler(Storage.Containers);
-        List<Containers> containers = new ArrayList<>();
+        List<Container> containers = new ArrayList<>();
         String rowStr = "";
         for (Row row : sheet) {
             rowStr = iterateRow(row);
@@ -137,7 +136,7 @@ public class DataHandler {
             double volume = Double.parseDouble(rowStr.split("~")[indexVolume]);
             String address = rowStr.split("~")[indexAddress];
             Coordinates<Double, Double> coord = new Coordinates<>(lat, lon);
-            containers.add(new Containers(address, coord,volume,count));
+            containers.add(new Container(address, coord,volume,count));
         }
         workbook.close();
         fis.close();

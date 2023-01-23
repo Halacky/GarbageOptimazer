@@ -3,25 +3,29 @@ package org.example;
 import com.grum.geocalc.Coordinate;
 import com.grum.geocalc.EarthCalc;
 import com.grum.geocalc.Point;
-import jdk.jshell.spi.SPIResolutionException;
 
 import java.io.IOException;
-import java.lang.reflect.Array;
 import java.util.*;
-import java.util.stream.Collectors;
+import java.util.List;
 
-
+/**
+ * <h1>Основной класс алгоритма</h1>
+ * Данный класс содержит методы описывающие логику алгоритма.
+ * @author  Головань Кирилл
+ * @version 1.1
+ * @since   2023-01-23
+ */
 public class GarbageOptimazer {
-
-    private List<Garage> Garages;
-    private List<Containers> _Containers;
-    private List<List<Double>> DistanceMatrix;
-    private Coordinates<Double,Double> Fcy;
-    private int indexOfFcy;
+    private List<Garage> Garages; // список гаражей
+    private List<Container> _Containers; // Список контейнеров
+    private List<List<Double>> DistanceMatrix; // Матрица расстояний
+    private Coordinates<Double,Double> Fcy; // Координаты самого удаленного объекта
+    private int IndexOfFcy; // Индекс самого удаленного объекта
 
     /**
      * Метод предназначенный для подсчета метрик М1, М2, М3.
-
+     * @param car - объект мышины, для которой необходимо посчитать метрики
+     * @param v - расстояние, которое необходимо проехать машине
      * @return Double[] - массив метрик.
      */
     private double[] calculateMMetrix(Car car, double v){
@@ -49,12 +53,12 @@ public class GarbageOptimazer {
             List<Double> row = new ArrayList<>();
             Coordinates<Double,Double> list = garage.getCoordinates();
             Coordinate lat = Coordinate.fromDegrees(list.getLatitude());
-            Coordinate lng = Coordinate.fromDegrees(list.getLatitude());
+            Coordinate lng = Coordinate.fromDegrees(list.getLongitude());
             Point objFrom = Point.at(lat, lng);
-            for (Containers container : _Containers) {
+            for (Container container : _Containers) {
                 list = container.getCoordinates();
                 lat = Coordinate.fromDegrees(list.getLatitude());
-                lng = Coordinate.fromDegrees(list.getLatitude());
+                lng = Coordinate.fromDegrees(list.getLongitude());
                 Point objTo = Point.at(lat, lng);
                 double distance =  calculateDistance(objFrom,objTo);//in meters
                 row.add(distance);
@@ -63,7 +67,7 @@ public class GarbageOptimazer {
         }
         DistanceMatrix = distanceMatrix;
 
-        Fcy = findFcy();
+        findFcy();
 
         return distanceMatrix;
 
@@ -78,7 +82,11 @@ public class GarbageOptimazer {
         return EarthCalc.haversine.distance(objFrom, objTo);
     }
 
-    private Coordinates<Double,Double> findFcy(){
+    /**
+     * Метод предназначенный для рассчета сумм расстояний всеми точками отправлений и всеми точками назначений.
+     * @return  List Double - суммы расстояний.
+     */
+    private List<Double> sumDistance(){
         int size = DistanceMatrix.get(0).size();
         List<Double> sumDistance = new ArrayList<>(Collections.nCopies(size, 0.0));
         System.out.println(sumDistance.size());
@@ -87,22 +95,91 @@ public class GarbageOptimazer {
                 sumDistance.set(i,sumDistance.get(i)+distanceMatrix.get(i));
             }
         }
-
-        indexOfFcy = getIndexOfLargest(sumDistance);
-        List<Garage> optimalGarages = getOptimalGarages(indexOfFcy);
-        getBestCar(optimalGarages);
-        return _Containers.get(indexOfFcy).getCoordinates();
+        return sumDistance;
     }
 
-    private void getBestCar(List<Garage> optimalGarages){
+    /**
+     * Метод предназначенный для нахождения саммой удаленной точки назначения.
+     */
+    private void findFcy(){
+        IndexOfFcy = getIndexOfLargest(sumDistance());
+        Fcy = _Containers.get(IndexOfFcy).getCoordinates();
+
+        List<Garage> optimalGarages = getOptimalGarages(IndexOfFcy);
+        Car bestCar = getBestCar(optimalGarages);
+    }
+
+    /**
+     * Метод предназначенный для добавления строки в матрицу расстояний.
+     * @param objF Исходная точка
+     */
+    private void addRowInMatrix(Container objF){
+            List<Double> row = new ArrayList<>();
+            Coordinates<Double, Double> list = objF.getCoordinates();
+            Coordinate lat = Coordinate.fromDegrees(list.getLatitude());
+            Coordinate lng = Coordinate.fromDegrees(list.getLongitude());
+            Point objFrom = Point.at(lat, lng);
+            for (Container container : _Containers) {
+                list = container.getCoordinates();
+                lat = Coordinate.fromDegrees(list.getLatitude());
+                lng = Coordinate.fromDegrees(list.getLongitude());
+                Point objTo = Point.at(lat, lng);
+                double distance = calculateDistance(objFrom, objTo);//in meters
+                row.add(distance);
+            }
+            DistanceMatrix.add(row);
+
+            System.out.println(DistanceMatrix.size());
+    }
+
+    /**
+     * Метод предназначенный для нахождения лучшей машины среди выбранных гаражей.
+     * @param optimalGarages Список выбранных (по удаленности) гаражей
+     * @return  Car - объект лучшей машины.
+     */
+    private Car getBestCar(List<Garage> optimalGarages){
+        double tmpMinM = Double.MAX_VALUE;
+        Car bestCar = null;
         for (Garage garage : optimalGarages){
             for (Car car: garage.getCars()){
-                calculateMMetrix(car, DistanceMatrix.get((int)(garage.getId()-1)).get(indexOfFcy));
+                calculateMMetrix(car, DistanceMatrix.get((int)(garage.getId()-1)).get(IndexOfFcy));
+                if (car.getM3() < tmpMinM){
+                    bestCar = car;
+                }
             }
         }
         System.out.println();
+        servicingContainer(bestCar);
+        return bestCar;
     }
 
+    private void getNeighbors(Car car){
+        // TODO проверка вместимости
+        Container lastCont = car.getServicesContainers().get(car.getServicesContainers().size()-1);
+        addRowInMatrix(lastCont);
+        int nearest = getIndexOfSmallest(sumDistance());
+        System.out.println(nearest);
+    }
+
+    private void servicingContainer(Car car){
+        Container container = _Containers.get(IndexOfFcy);
+        List<Container> serviceCont = new ArrayList<>();
+        container.setCarNumber(car.getNumber());
+        container.setIsCater(true);
+        Coordinates<Double, Double> centroid = new Coordinates<>(
+                container.getCoordinates().getLongitude(),
+                container.getCoordinates().getLatitude()
+        );
+        car.setCentroid(centroid);
+        serviceCont.add(container);
+        car.setServicesContainers(serviceCont);
+        getNeighbors(car);
+    }
+    /**
+     * Метод предназначенный для нахождения лучших гаражей. Выбор происходит на основе сумм расстояний
+     * @param fcy Индекс саммой удаленной точки, до неё будет искать суммы расстояний
+     * @return  List Garage - объекты самых ближайщих гаражей.
+     */
     private List<Garage> getOptimalGarages(int fcy){
         List<Double> optimalGarageIndexes = new ArrayList<>();
         List<Garage> optimalGarage = new ArrayList<>();
@@ -124,6 +201,11 @@ public class GarbageOptimazer {
         return optimalGarage;
     }
 
+    /**
+     * Метод предназначенный для нахождения инедкса наибольшего значения в массиве.
+     * @param array Массив чисел
+     * @return  int - индекс наибольшего числа
+     */
     private int getIndexOfLargest(List<Double> array )
     {
         if ( array == null || array.size() == 0 ) return -1;
@@ -134,6 +216,23 @@ public class GarbageOptimazer {
             if ( array.get(i) > array.get(largest)) largest = i;
         }
         return largest;
+    }
+
+    /**
+     * Метод предназначенный для нахождения инедкса наименьшего значения в массиве.
+     * @param array Массив чисел
+     * @return  int - индекс наименьшего числа
+     */
+    private int getIndexOfSmallest(List<Double> array)
+    {
+        if ( array == null || array.size() == 0 ) return -1;
+
+        int smallest = 0;
+        for ( int i = 1; i < array.size(); i++ )
+        {
+            if ( array.get(i) < array.get(smallest) & array.get(i) > 0) smallest = i;
+        }
+        return smallest;
     }
 
 }
