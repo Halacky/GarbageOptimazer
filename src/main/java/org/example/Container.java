@@ -16,6 +16,7 @@ public class Container {
     private double AllVolume; // Суммарный объем КП
     private boolean IsCater; // КП обслужена или нет
     private String CarNumber; // Номер обслуживающей машины
+    private byte[] Schedule; // График вывоза
 
     /**
      * @param address Адрес КП
@@ -23,7 +24,7 @@ public class Container {
      * @param volume Объем КП
      * @param count Кол-во КП
      */
-    public Container(String address, Coordinates<Double, Double> coordinates, double volume, int count){
+    public Container(String address, Coordinates<Double, Double> coordinates, double volume, int count,byte[] schedule ){
         Address = address;
         Coordinates = coordinates;
         Volume = volume;
@@ -31,6 +32,7 @@ public class Container {
         AllVolume = Volume * Count;
         IsCater = false;
         CarNumber = null;
+        Schedule = schedule;
     }
     public Coordinates<Double, Double> getCoordinates() {
         return Coordinates;

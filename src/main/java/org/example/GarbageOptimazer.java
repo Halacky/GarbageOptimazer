@@ -175,6 +175,7 @@ public class GarbageOptimazer {
         car.setServicesContainers(serviceCont);
         getNeighbors(car);
     }
+
     /**
      * Метод предназначенный для нахождения лучших гаражей. Выбор происходит на основе сумм расстояний
      * @param fcy Индекс саммой удаленной точки, до неё будет искать суммы расстояний

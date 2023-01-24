@@ -122,6 +122,12 @@ public class DataHandler {
         XSSFSheet sheet = createExcelHandler(Storage.Containers);
         List<Container> containers = new ArrayList<>();
         String rowStr = "";
+        Calendar nextM = getNextMonth(new Date());
+        int countDays = nextM.getActualMaximum(Calendar.DAY_OF_MONTH);
+        for(int i = 0; i<countDays;i++){
+            System.out.println(nextM.getTime().getDate());
+            nextM.add(Calendar.DATE, 1);
+        }
         for (Row row : sheet) {
             rowStr = iterateRow(row);
             int indexLat = 10;
@@ -129,6 +135,7 @@ public class DataHandler {
             int indexAddress = 3;
             int indexCount = 12;
             int indexVolume = 13;
+            int indexSchedule = 14;
 
             double lat = Double.parseDouble(rowStr.split("~")[indexLat]);
             double lon = Double.parseDouble(rowStr.split("~")[indexLon]);
@@ -136,12 +143,41 @@ public class DataHandler {
             double volume = Double.parseDouble(rowStr.split("~")[indexVolume]);
             String address = rowStr.split("~")[indexAddress];
             Coordinates<Double, Double> coord = new Coordinates<>(lat, lon);
-            containers.add(new Container(address, coord,volume,count));
+            String schedule = rowStr.split("~")[indexSchedule];
+            byte[] hotPointSchedule = parseSchedule(schedule);
+            containers.add(new Container(address, coord,volume,count,hotPointSchedule));
         }
         workbook.close();
         fis.close();
 
         return containers;
+    }
+
+    private byte[] parseSchedule(String schedule){
+
+        // TODO Распарсить варианты вывоза и сформировать one hot представление для каждой КП
+
+        return new byte[1];
+    }
+
+    /**
+     * Метод предназначенный для получения следующего месяца
+     * @param date Текущая дата
+     * @return Дата первое число следующего месяца
+     */
+    public static Calendar getNextMonth(Date date) {
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(date);
+
+        if (calendar.get(Calendar.MONTH) == Calendar.DECEMBER) {
+            calendar.set(Calendar.MONTH, Calendar.JANUARY);
+            calendar.set(Calendar.YEAR, calendar.get(Calendar.YEAR) + 1);
+        } else {
+            calendar.roll(Calendar.MONTH, true);
+        }
+
+        calendar.add(Calendar.DATE, -(int)calendar.getTime().getDate()+1);
+        return calendar;
     }
 
     /**
