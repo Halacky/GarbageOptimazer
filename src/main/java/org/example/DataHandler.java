@@ -123,11 +123,7 @@ public class DataHandler {
         List<Container> containers = new ArrayList<>();
         String rowStr = "";
         Calendar nextM = getNextMonth(new Date());
-        int countDays = nextM.getActualMaximum(Calendar.DAY_OF_MONTH);
-        for(int i = 0; i<countDays;i++){
-            System.out.println(nextM.getTime().getDate());
-            nextM.add(Calendar.DATE, 1);
-        }
+
         for (Row row : sheet) {
             rowStr = iterateRow(row);
             int indexLat = 10;
@@ -144,7 +140,7 @@ public class DataHandler {
             String address = rowStr.split("~")[indexAddress];
             Coordinates<Double, Double> coord = new Coordinates<>(lat, lon);
             String schedule = rowStr.split("~")[indexSchedule];
-            byte[] hotPointSchedule = parseSchedule(schedule);
+            byte[] hotPointSchedule = parseSchedule(schedule,nextM);
             containers.add(new Container(address, coord,volume,count,hotPointSchedule));
         }
         workbook.close();
@@ -152,11 +148,70 @@ public class DataHandler {
 
         return containers;
     }
+    private static Integer tryParseInt(String text) {
+        try {
+            return Integer.parseInt(text);
+        } catch (NumberFormatException ex) {
+            return 0;
+        }
+    }
 
-    private byte[] parseSchedule(String schedule){
+    private int getNumberDayOnWeek(String day){
+        int numDay = 0;
+        if(day.contains("пон")){
+            numDay = 1;
+        }
+        if(day.contains("втор")){
+            numDay = 2;
+        }
+        if(day.contains("сред")){
+            numDay = 3;
+        }
+        if(day.contains("чет")){
+            numDay = 4;
+        }
+        if(day.contains("пят")){
+            numDay = 5;
+        }
+        if(day.contains("суб")){
+            numDay = 6;
+        }
+        if(day.contains("вос")){
+            numDay = 7;
+        }
+        return numDay;
+    }
+    private byte[] parseSchedule(String schedule, Calendar nextMonth){
+        int countDays = nextMonth.getActualMaximum(Calendar.DAY_OF_MONTH);
+        String[] partOfSchedule = schedule.split(",");
+        Date currentDate = nextMonth.getTime();
+        byte[] oneHot = new byte[countDays+1];
+        for(String day: partOfSchedule){
+            int numOfDay = tryParseInt(day);
+            String[] combineDay = day.split(" ");
+            if(tryParseInt(day) != 0){
+                oneHot[numOfDay] = 1;
+            }
+            else if (day.toLowerCase().contains("перв")){
+                int numDay = getNumberDayOnWeek(combineDay[1]);
+                System.out.println(day);
+                for(int i = 1; i<=countDays;i++){
+                    currentDate = nextMonth.getTime();
+                    System.out.println(currentDate);
+                    if (numOfDay == currentDate.getDay()){
+                        oneHot[currentDate.getDate()-1] = 1;
+                        break;
+                    }else{
+                        nextMonth.add(Calendar.DATE, 1);
+                    }
+                }
+            } else if (day.toLowerCase().contains("втор")) {
+            } else if (day.toLowerCase().contains("трет")) {
+            }else if(day.toLowerCase().contains("четв")){
+            }else {
 
-        // TODO Распарсить варианты вывоза и сформировать one hot представление для каждой КП
-
+            }
+        }
         return new byte[1];
     }
 
