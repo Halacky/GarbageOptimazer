@@ -140,6 +140,8 @@ public class DataHandler {
             String address = rowStr.split("~")[indexAddress];
             Coordinates<Double, Double> coord = new Coordinates<>(lat, lon);
             String schedule = rowStr.split("~")[indexSchedule];
+            System.out.println(String.format("size= %s;data= %s;", containers.size()+1, nextM.getTime()));
+
             byte[] hotPointSchedule = parseSchedule(schedule,nextM);
             containers.add(new Container(address, coord,volume,count,hotPointSchedule));
         }
@@ -148,6 +150,12 @@ public class DataHandler {
 
         return containers;
     }
+
+    /**
+     * Метод предназначенный для преобразования текста в число, если это возможно.
+     * @param text Текст, который необходимо преобразовать в число
+     * @return Число или 0
+     */
     private static Integer tryParseInt(String text) {
         try {
             return Integer.parseInt(text);
@@ -156,63 +164,125 @@ public class DataHandler {
         }
     }
 
+    /**
+     * Метод предназначенный для получения номера дня недели
+     * @param day Название дня недели
+     * @return Порядковый номер дня недели
+     */
     private int getNumberDayOnWeek(String day){
         int numDay = 0;
-        if(day.contains("пон")){
+        day = day.toLowerCase();
+        if(day.contains("пон") || day.contains("пн")){
             numDay = 1;
         }
-        if(day.contains("втор")){
+        else if(day.contains("втор") || day.contains("вт")){
             numDay = 2;
         }
-        if(day.contains("сред")){
+        else if(day.contains("сред") || day.contains("ср")){
             numDay = 3;
         }
-        if(day.contains("чет")){
+        else if(day.contains("чет") || day.contains("чт")){
             numDay = 4;
         }
-        if(day.contains("пят")){
+        else if(day.contains("пят")|| day.contains("пт")){
             numDay = 5;
         }
-        if(day.contains("суб")){
+        else if(day.contains("суб")|| day.contains("сб")){
             numDay = 6;
         }
-        if(day.contains("вос")){
-            numDay = 7;
+        else if(day.contains("вос")|| day.contains("вс")){
+            numDay = 0;
         }
         return numDay;
     }
-    private byte[] parseSchedule(String schedule, Calendar nextMonth){
+
+    /**
+     * Метод предназначенный для создания OneHot представления.
+     * OneHot представление: массив состоящий из бинарных элементов, где 0 - отсутствие необходимости вывоза, 1 - необходимость вывоза.
+     * @param cnt Порядковый номер дня. Например, второй четверг месяца (cnt = 2)
+     * @param combineDay Массив слов комбинированного графика вывоза [второй, четверг, месяца]
+     * @param nextMonth Объект следуюшего месяца
+     * @return Индекс дня месяца, в который необходимо осуществить вывоз
+     */
+    private int createOneHot(List<String> combineDay,  Calendar nextMonth, int cnt){
+        int numDay = getNumberDayOnWeek(combineDay.get(1));
         int countDays = nextMonth.getActualMaximum(Calendar.DAY_OF_MONTH);
-        String[] partOfSchedule = schedule.split(",");
-        Date currentDate = nextMonth.getTime();
-        byte[] oneHot = new byte[countDays+1];
-        for(String day: partOfSchedule){
-            int numOfDay = tryParseInt(day);
-            String[] combineDay = day.split(" ");
-            if(tryParseInt(day) != 0){
-                oneHot[numOfDay] = 1;
+        int count = 0;
+        int oneHotIndex = 0;
+        Date currentDate;
+        for(int i = 0; i<=countDays;i++) {
+            currentDate = nextMonth.getTime();
+
+            if (numDay == currentDate.getDay()) {
+                count++;
+                nextMonth.add(Calendar.DATE, 1);
+
+            } else {
+                nextMonth.add(Calendar.DATE, 1);
             }
-            else if (day.toLowerCase().contains("перв")){
-                int numDay = getNumberDayOnWeek(combineDay[1]);
-                System.out.println(day);
-                for(int i = 1; i<=countDays;i++){
-                    currentDate = nextMonth.getTime();
-                    System.out.println(currentDate);
-                    if (numOfDay == currentDate.getDay()){
-                        oneHot[currentDate.getDate()-1] = 1;
-                        break;
-                    }else{
-                        nextMonth.add(Calendar.DATE, 1);
-                    }
-                }
-            } else if (day.toLowerCase().contains("втор")) {
-            } else if (day.toLowerCase().contains("трет")) {
-            }else if(day.toLowerCase().contains("четв")){
-            }else {
+            if (count==cnt){
+                oneHotIndex = currentDate.getDate();
+
+                break;
 
             }
         }
-        return new byte[1];
+        nextMonth.add(Calendar.DATE, -(oneHotIndex));
+        return oneHotIndex;
+    }
+
+    /**
+     * Метод предназначенный для преобразования графика вывоза к единому виду.
+     * Виды записи графика вывоза:
+     * <ol>
+     *     <li>Числовые значения, например: 1,2, 15 - вывоз осуществляется в конкретные дни месяца</li>
+     *     <li>Краткая запись, например: ПН, ПТ - вывоз осуществляется каждый указанный день недели на протяжении всего месяца</li>
+     *     <li>Комбинированная запись, например: второй четверг месяца - вывоз осуществляется в день определенного порядка</li>
+     * </ol>
+     * @param schedule Запись о графике вывоза
+     * @param nextMonth Объект следуюшего месяца
+     * @return byte[] - One hot представление
+     */
+    private byte[] parseSchedule(String schedule, Calendar nextMonth){
+        int countDays = nextMonth.getActualMaximum(Calendar.DAY_OF_MONTH);
+
+        String[] partOfSchedule = schedule.split(",");
+        byte[] oneHot = new byte[countDays];
+        for(String day: partOfSchedule){
+            int numOfDay = tryParseInt(day);
+            List<String> combineDay = new ArrayList<String>(Arrays.asList(day.split(" ")));;
+            combineDay.removeAll(Arrays.asList("", null));
+            if(numOfDay != 0 & numOfDay<=countDays){
+                oneHot[numOfDay-1] = 1;
+            }
+            else if (day.toLowerCase().contains("перв")){
+                oneHot[createOneHot(combineDay,nextMonth,1) - 1] = 1;
+            } else if (day.toLowerCase().contains("второ")) {
+                oneHot[createOneHot(combineDay,nextMonth,2) - 1] = 1;
+            } else if (day.toLowerCase().contains("трет")) {
+                oneHot[createOneHot(combineDay,nextMonth,3) - 1] = 1;
+            }else if(day.toLowerCase().contains("четверт")){
+                oneHot[createOneHot(combineDay,nextMonth,4) - 1] = 1;
+            }else {
+                try {
+                    int numberOfWeek = getNumberDayOnWeek(day);
+                    for(int i = 0; i<countDays-1;i++) {
+                        Date currentDate = nextMonth.getTime();
+//                        System.out.println(currentDate);
+                        if (numberOfWeek == currentDate.getDay()) {
+                            oneHot[currentDate.getDate() - 1] = 1;
+                        }
+                        nextMonth.add(Calendar.DATE, 1);
+                    }
+                    nextMonth.add(Calendar.DATE, -(nextMonth.getTime().getDate()-1));
+
+                }catch (Exception e){
+                    System.out.println();
+                }
+
+            }
+        }
+        return oneHot;
     }
 
     /**
@@ -294,4 +364,5 @@ public class DataHandler {
         }
         return rowStr;
     }
+
 }
