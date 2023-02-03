@@ -140,7 +140,7 @@ public class DataHandler {
             String address = rowStr.split("~")[indexAddress];
             Coordinates<Double, Double> coord = new Coordinates<>(lat, lon);
             String schedule = rowStr.split("~")[indexSchedule];
-            System.out.println(String.format("size= %s;data= %s;", containers.size()+1, nextM.getTime()));
+//            System.out.println(String.format("size= %s;data= %s;", containers.size()+1, nextM.getTime()));
 
             byte[] hotPointSchedule = parseSchedule(schedule,nextM);
             containers.add(new Container(address, coord,volume,count,hotPointSchedule));

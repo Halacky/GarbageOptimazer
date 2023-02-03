@@ -9,8 +9,8 @@ public class Main
     public static void main( String[] args )
     {
         try {
-            List<List<Double>> garagesInfo = new GarbageOptimazer().createDistanceMatrix();
-
+            GarbageOptimazer go = new GarbageOptimazer();
+            go.findFcy();
 //            new DataHandler().fillGarage();
             System.out.println();
         } catch (IOException e) {

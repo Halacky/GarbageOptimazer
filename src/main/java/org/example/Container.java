@@ -45,4 +45,8 @@ public class Container {
     public void setCarNumber(String carNumber) {
         CarNumber = carNumber;
     }
+
+    public double getAllVolume() {
+        return AllVolume;
+    }
 }
