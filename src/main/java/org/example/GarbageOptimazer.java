@@ -23,6 +23,8 @@ public class GarbageOptimazer {
 //    private int IndexOfFcy; // Индекс самого удаленного объекта
     private List<Container> AllServiceCont;
 
+    private List<Double> parentCluster;
+
     public GarbageOptimazer() throws IOException {
         createDistanceMatrix();
         AllServiceCont = new ArrayList<>();
@@ -143,7 +145,6 @@ public class GarbageOptimazer {
         }
         DistanceMatrix.add(row);
 
-        System.out.println(DistanceMatrix.size());
     }
 
     /**
@@ -168,17 +169,14 @@ public class GarbageOptimazer {
     }
 
     private void getNeighbors(Car car){
-        // TODO проверка вместимости
         Container lastCont = car.getServicesContainers().get(car.getServicesContainers().size()-1);
         addRowInMatrix(lastCont);
-//        int nearest = getIndexOfSmallest(sumDistance());
-//        System.out.println(nearest);
-        int indexNearest = findNearest();
-        findNearest();
+        int indexNearest = findNearest(car);
+        servicingContainer(car, indexNearest);
     }
 
-    private int findNearest(){
-        List<Double> last = DistanceMatrix.get(DistanceMatrix.size()-1);
+    private int findNearest(Car car){
+        List<Double> last = DistanceMatrix.get(DistanceMatrix.size()-car.getServicesContainers().size());
         double max = Double.MIN_VALUE;
         int indexMax = 0;
         for(int i = 0; i<last.size();i++){
@@ -195,20 +193,21 @@ public class GarbageOptimazer {
     }
 
     private void servicingContainer(Car car, int indexOfFcy){
-        Container container = _Containers.get(indexOfFcy);
-        List<Container> serviceCont = new ArrayList<>();
-        container.setCarNumber(car.getNumber());
-        container.setIsCater(true);
-        Coordinates<Double, Double> centroid = new Coordinates<>(
-                container.getCoordinates().getLongitude(),
-                container.getCoordinates().getLatitude()
-        );
-        serviceCont.add(container);
-        car.setCapacity(car.getCapacity()-container.getAllVolume());
-        car.setCentroid(centroid);
-        car.setServicesContainers(serviceCont);
-        AllServiceCont.add(container);
-        getNeighbors(car);
+        if(checkCarCapacity(car,indexOfFcy)){
+            Container container = _Containers.get(indexOfFcy);
+            container.setCarNumber(car.getNumber());
+            container.setIsCater(true);
+            Coordinates<Double, Double> centroid = new Coordinates<>(
+                    container.getCoordinates().getLongitude(),
+                    container.getCoordinates().getLatitude()
+            );
+            car.setCapacity(car.getCapacity()-container.getAllVolume());
+            car.setCentroid(centroid);
+            car.setServicesContainers(container);
+            AllServiceCont.add(container);
+            getNeighbors(car);
+        }
+
     }
 
     /**

@@ -1,6 +1,7 @@
 package org.example;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -42,7 +43,7 @@ public class Car {
         FuelType = fuelType;
         WorkSchedule = workSchedule;
         FuelConsum = fuelConsum;
-        ServicesContainers = null;
+        ServicesContainers = new ArrayList<>();
     }
 
     public Coordinates<Double, Double> getCentroid() {
@@ -88,8 +89,8 @@ public class Car {
         return Number;
     }
 
-    public void setServicesContainers(List<Container> servicesContainers) {
-        ServicesContainers = servicesContainers;
+    public void setServicesContainers(Container container) {
+        ServicesContainers.add(container);
     }
 
     public List<Container> getServicesContainers() {
