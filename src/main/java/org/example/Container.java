@@ -49,4 +49,8 @@ public class Container {
     public double getAllVolume() {
         return AllVolume;
     }
+
+    public String getAddress() {
+        return Address;
+    }
 }

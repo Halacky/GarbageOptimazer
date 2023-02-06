@@ -24,7 +24,8 @@ public class Car {
     private String FuelType; // Тип топлива
     private String WorkSchedule; // График работы
     private double FuelConsum; // Расход топлива на 1 км
-    private List<Container> ServicesContainers;
+    private List<Container> ServicesContainers; // Обслуженные машины
+    private boolean InWork; // Индикатор, отображающий, находится ли машина в работе или нет
 
     /**
      * @param number Гос. номер
@@ -44,56 +45,53 @@ public class Car {
         WorkSchedule = workSchedule;
         FuelConsum = fuelConsum;
         ServicesContainers = new ArrayList<>();
+        InWork = false;
     }
 
     public Coordinates<Double, Double> getCentroid() {
         return Centroid;
     }
-
     public double getGarageId() {
         return GarageId;
     }
-
     public void setCentroid(Coordinates<Double, Double> centroid) {
         Centroid = centroid;
     }
-
     public void setCoordinates(Coordinates<Double, Double> coordinates) {
         Coordinates = coordinates;
     }
-
     public void setCapacity(double capacity) {
         Capacity = capacity;
     }
-
     public double getTypeOfGrab() {
         return TypeOfGrab;
     }
-
     public double getFuelConsum() {
         return FuelConsum;
     }
-
     public double getCapacity() {
         return Capacity;
     }
-
     public void setM3(double m3) {
         M3 = m3;
     }
-
     public double getM3() {
         return M3;
     }
     public String getNumber() {
         return Number;
     }
-
     public void setServicesContainers(Container container) {
         ServicesContainers.add(container);
     }
-
     public List<Container> getServicesContainers() {
         return ServicesContainers;
+    }
+
+    public void setInWork(boolean inWork) {
+        InWork = inWork;
+    }
+    public boolean isInWork() {
+        return InWork;
     }
 }
