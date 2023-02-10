@@ -1,10 +1,14 @@
 package org.example;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
+import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVPrinter;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
@@ -330,6 +334,8 @@ public class DataHandler {
             int indexNumber = 2;
             int indexTypeLoad = 7;
             int indexGarage = 12;
+            int indexVolume = 13;
+            int indexCompactionRatio= 14;
             int indexLoadCapacity= 15;
             int indexFuel = 17;
             int indexSchedule = 18;
@@ -339,15 +345,30 @@ public class DataHandler {
             double loadType = Double.parseDouble(rowStr.split("~")[indexTypeLoad]);
             double garageId = Double.parseDouble(rowStr.split("~")[indexGarage]);
             double capacity = Double.parseDouble(rowStr.split("~")[indexLoadCapacity]);
+            double volume = Double.parseDouble(rowStr.split("~")[indexVolume]);
+            double compactionRatio = Double.parseDouble(rowStr.split("~")[indexCompactionRatio]);
             String fuelType = rowStr.split("~")[indexFuel];
             String schedule = rowStr.split("~")[indexSchedule];
             double fuelConsum  =  Double.parseDouble(rowStr.split("~")[indexConsum]);
-            cars.add(new Car(number, capacity,loadType,garageId,fuelType,schedule,fuelConsum));
+            cars.add(new Car(number, capacity,loadType,garageId,fuelType,schedule,fuelConsum,compactionRatio,volume));
         }
         workbook.close();
         fis.close();
 
         return cars;
+    }
+    public static void create_csv(List<String> args) throws IOException {
+        try (BufferedWriter writer = Files.newBufferedWriter(Paths.get("test.csv"))) {
+            writer.write('\ufeff');
+            CSVPrinter csvPrinter = new CSVPrinter(writer, CSVFormat.DEFAULT);
+
+            for(String row: args){
+                List<String> items = Arrays.asList(row.split(","));
+                csvPrinter.printRecord(items.get(0),items.get(1),items.get(2),items.get(3),items.get(4));
+            }
+
+            csvPrinter.flush();
+        }
     }
 
     /**

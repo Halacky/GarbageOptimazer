@@ -8,6 +8,8 @@ import java.io.IOException;
 import java.util.*;
 import java.util.List;
 
+import static org.example.DataHandler.create_csv;
+
 /**
  * <h1>Основной класс алгоритма</h1>
  * Данный класс содержит методы описывающие логику алгоритма.
@@ -15,7 +17,7 @@ import java.util.List;
  * @version 1.1
  * @since   2023-01-23
  */
-public class GarbageOptimazer {
+public class GarbageOptimazer{
     private List<Garage> Garages; // список гаражей
     private List<Container> _Containers; // Список контейнеров
     private List<List<Double>> DistanceMatrix; // Матрица расстояний
@@ -72,11 +74,9 @@ public class GarbageOptimazer {
             distanceMatrix.add(row);
         }
         DistanceMatrix = distanceMatrix;
-
-
         return distanceMatrix;
-
     }
+
     /**
      * Метод предназначенный для рассчета расстония между двумя точками.
      * @param objFrom Исходная точка
@@ -106,12 +106,8 @@ public class GarbageOptimazer {
     /**
      * Метод предназначенный для нахождения саммой удаленной точки назначения.
      */
-    protected void findFcy(){
+    protected void findFcy() throws IOException {
         while (AllServiceCont.size() <= _Containers.size()){
-            System.out.println(AllServiceCont.size());
-            if(AllServiceCont.size() == 237){
-                System.out.println();
-            }
             int indexOfFcy = getIndexOfLargest(sumDistance());
             Fcy = _Containers.get(indexOfFcy).getCoordinates();
 
@@ -121,6 +117,17 @@ public class GarbageOptimazer {
 
             servicingContainer(bestCar,indexOfFcy);
             DistanceMatrix.remove(DistanceMatrix.size()-1);
+
+            List<String> toCsv = new ArrayList<>();
+            int cnt = 1;
+            for(Container container: bestCar.getServicesContainers()){
+                String row = container.getCoordinates().getLongitude()+","+ container.getCoordinates().getLatitude()+","+"Desc,"+container.getAddress().replaceAll(",","~")+","+cnt;
+                cnt++;
+                toCsv.add(row);
+            }
+            create_csv(toCsv);
+            break;
+
         }
 
     }
@@ -173,11 +180,14 @@ public class GarbageOptimazer {
      */
     private Car getBestCar(List<Garage> optimalGarages, int indexOfFcy){
         double tmpMinM = Double.MAX_VALUE;
+        double distance = 0;
         Car bestCar = null;
         for (Garage garage : optimalGarages){
             for (Car car: garage.getCars()){
-                calculateMMetrix(car, DistanceMatrix.get((int)(garage.getId()-1)).get(indexOfFcy));
-                if (checkCarCapacity(car, indexOfFcy) & !car.isInWork()){
+                distance = DistanceMatrix.get((int)(garage.getId()-1)).get(indexOfFcy);
+                calculateMMetrix(car, distance);
+                calculateWorkingTime(car, distance);
+                if (checkCarCapacity(car, indexOfFcy) & !car.isInWork() ){
                     if (car.getM3() < tmpMinM){
                         bestCar = car;
                     }
@@ -188,48 +198,60 @@ public class GarbageOptimazer {
     }
 
     private void getNeighbors(Car car){
-        int indexNearest = findNearest(car);
-        if(indexNearest==21846){
-            System.out.println();
-        }
+        int indexNearest = findNearest();
         servicingContainer(car, indexNearest);
     }
 
-    private int findNearest(Car car){
+    private int findNearest(){
         List<Double> parent = DistanceMatrix.get(DistanceMatrix.size()-1);
-        double max = Double.MIN_VALUE;
-        int indexMax = 0;
+        double min = Double.MAX_VALUE;
+        int indexMin = 0;
         for(int i = 0; i<parent.size();i++){
             if(parent.get(i) != 0){
-                double importanceContainer = _Containers.get(i).getAllVolume()/parent.get(i);
-                if (importanceContainer>max){
-                    max = importanceContainer;
-                    indexMax = i;
+                if (min>parent.get(i)){
+                    min = parent.get(i);
+                    indexMin = i;
                 }
             }
 
         }
-        return indexMax;
+        return indexMin;
     }
 
     private void servicingContainer(Car car, int indexOfFcy){
         if(checkCarCapacity(car,indexOfFcy)){
+//            System.out.println("Самая удаленная КП: " + _Containers.get(indexOfFcy).getAddress());
+//            System.out.println("Обслуживает: " + car.getNumber());
             Container container = _Containers.get(indexOfFcy);
             container.setCarNumber(car.getNumber());
+            car.setServicesContainers(container);
             container.setIsCater(true);
+            double longCentroid = 0;
+            double latCentroid = 0;
+            for (Container serviceCont: car.getServicesContainers()){
+                longCentroid += serviceCont.getCoordinates().getLongitude();
+                latCentroid += serviceCont.getCoordinates().getLatitude();
+            }
             Coordinates<Double, Double> centroid = new Coordinates<>(
-                    container.getCoordinates().getLongitude(),
-                    container.getCoordinates().getLatitude()
+                    longCentroid/car.getServicesContainers().size(),
+                    latCentroid/car.getServicesContainers().size()
             );
+
             car.setCapacity(car.getCapacity()-container.getAllVolume());
             car.setCentroid(centroid);
-            car.setServicesContainers(container);
             car.setInWork(true);
+//            System.out.println("Кол-во обслуженных КП: " + car.getServicesContainers().size());
+//            System.out.println("Координаты: " + car.getCentroid().getLongitude() + "/" + car.getCentroid().getLatitude());
             AllServiceCont.add(container);
             removeTemporaryOT(indexOfFcy);
             getNeighbors(car);
         }
 
+    }
+
+    private void calculateWorkingTime(Car bestCar, double distance){
+        double averageSpeed = 60;
+        bestCar.setTimeInWork((distance/1000)/averageSpeed);
     }
 
     /**
@@ -297,5 +319,10 @@ public class GarbageOptimazer {
     }
 
 }
-//TODO пересчитать центроиды
-//TODO проверка близости центроида при выборе машины
+
+//TODO расчёт времени прибывания машины в работе
+//TODO удалить дубликаты КП
+//TODO проверка близости центроиды при выборе машины
+
+
+
