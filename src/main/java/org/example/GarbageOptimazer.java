@@ -27,6 +27,7 @@ public class GarbageOptimazer{
 
     public GarbageOptimazer() throws IOException {
         createDistanceMatrix();
+
         AllServiceCont = new ArrayList<>();
     }
 
@@ -121,7 +122,7 @@ public class GarbageOptimazer{
             List<String> toCsv = new ArrayList<>();
             int cnt = 1;
             for(Container container: bestCar.getServicesContainers()){
-                String row = container.getCoordinates().getLongitude()+","+ container.getCoordinates().getLatitude()+","+"Desc,"+container.getAddress().replaceAll(",","~")+","+cnt;
+                String row = container.getCoordinates().getLongitude()+","+ container.getCoordinates().getLatitude()+","+""+","+container.getAddress().replaceAll(",","~")+","+cnt;
                 cnt++;
                 toCsv.add(row);
             }
@@ -187,7 +188,7 @@ public class GarbageOptimazer{
                 distance = DistanceMatrix.get((int)(garage.getId()-1)).get(indexOfFcy);
                 calculateMMetrix(car, distance);
                 calculateWorkingTime(car, distance);
-                if (checkCarCapacity(car, indexOfFcy) & !car.isInWork() ){
+                if (checkCarCapacity(car, indexOfFcy) & !car.isInWork() & car.getTimeInWork()<8){
                     if (car.getM3() < tmpMinM){
                         bestCar = car;
                     }
@@ -221,7 +222,8 @@ public class GarbageOptimazer{
     private void servicingContainer(Car car, int indexOfFcy){
         if(checkCarCapacity(car,indexOfFcy)){
 //            System.out.println("Самая удаленная КП: " + _Containers.get(indexOfFcy).getAddress());
-//            System.out.println("Обслуживает: " + car.getNumber());
+//            System.out.println("Обслуживает: " + car.getGarageId());
+//            System.out.println("Distance: " + DistanceMatrix.get((int) car.getGarageId()).get(indexOfFcy));
             Container container = _Containers.get(indexOfFcy);
             container.setCarNumber(car.getNumber());
             car.setServicesContainers(container);
@@ -251,7 +253,7 @@ public class GarbageOptimazer{
 
     private void calculateWorkingTime(Car bestCar, double distance){
         double averageSpeed = 60;
-        bestCar.setTimeInWork((distance/1000)/averageSpeed);
+        bestCar.setTimeInWork(bestCar.getTimeInWork()+(distance/1000)/averageSpeed);
     }
 
     /**
@@ -319,9 +321,9 @@ public class GarbageOptimazer{
     }
 
 }
-
+// QA Что делать с Бодайбо, до них ехать 30+ часов, как их вывозят сейчас?
+//TODO Ограничить работу алгоритма до Иркутска и Ангарска
 //TODO расчёт времени прибывания машины в работе
-//TODO удалить дубликаты КП
 //TODO проверка близости центроиды при выборе машины
 
 

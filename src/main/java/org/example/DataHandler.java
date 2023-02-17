@@ -3,6 +3,7 @@ package org.example;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -81,6 +82,14 @@ public class DataHandler {
         workbook.close();
         fis.close();
 
+        List<String> toCsv = new ArrayList<>();
+        int cnt = 1;
+        for(Garage garage: garages){
+            String row = garage.getCoordinates().getLongitude()+","+ garage.getCoordinates().getLatitude()+","+"Garage,"+garage.getAddress().replaceAll(",","~")+","+cnt;
+            cnt++;
+            toCsv.add(row);
+        }
+        create_csv(toCsv);
 
         return garages;
     }
@@ -130,6 +139,7 @@ public class DataHandler {
 
         for (Row row : sheet) {
             rowStr = iterateRow(row);
+            int indexCityName = 0;
             int indexLat = 10;
             int indexLon = 11;
             int indexAddress = 3;
@@ -144,10 +154,14 @@ public class DataHandler {
             String address = rowStr.split("~")[indexAddress];
             Coordinates<Double, Double> coord = new Coordinates<>(lat, lon);
             String schedule = rowStr.split("~")[indexSchedule];
+            String city = rowStr.split("~")[indexCityName];
+
 //            System.out.println(String.format("size= %s;data= %s;", containers.size()+1, nextM.getTime()));
 
             byte[] hotPointSchedule = parseSchedule(schedule,nextM);
-            containers.add(new Container(address, coord,volume,count,hotPointSchedule));
+            if(city.toLowerCase().contains("иркут") || city.toLowerCase().contains("ангар")){
+                containers.add(new Container(address, coord,volume,count,hotPointSchedule));
+            }
         }
         workbook.close();
         fis.close();
@@ -267,7 +281,15 @@ public class DataHandler {
                 oneHot[createOneHot(combineDay,nextMonth,3) - 1] = 1;
             }else if(day.toLowerCase().contains("четверт")){
                 oneHot[createOneHot(combineDay,nextMonth,4) - 1] = 1;
-            }else {
+            }else if(day.toLowerCase().contains("ежед")){
+                //По заявке
+                //Каждый (2) Чт, Каждый (4) Чт
+                //1Р/МЕС ПО ЗАЯВКЕ
+                //ПО ЗАЯВКАМ
+                Arrays.fill(oneHot, (byte)1);
+            } else if (day.toLowerCase().contains("заяв")) {
+                continue;
+            } else {
                 try {
                     int numberOfWeek = getNumberDayOnWeek(day);
                     for(int i = 0; i<countDays-1;i++) {
@@ -358,7 +380,8 @@ public class DataHandler {
         return cars;
     }
     public static void create_csv(List<String> args) throws IOException {
-        try (BufferedWriter writer = Files.newBufferedWriter(Paths.get("test.csv"))) {
+        try (BufferedWriter writer = Files.newBufferedWriter(Paths.get("test.csv"),StandardOpenOption.APPEND,
+                StandardOpenOption.CREATE)) {
             writer.write('\ufeff');
             CSVPrinter csvPrinter = new CSVPrinter(writer, CSVFormat.DEFAULT);
 
