@@ -29,7 +29,7 @@ public class Container {
         Coordinates = coordinates;
         Volume = volume;
         Count = count;
-        AllVolume = Volume * Count;
+        AllVolume = Volume * Count * 1000;
         IsCater = false;
         CarNumber = null;
         Schedule = schedule;
@@ -52,5 +52,9 @@ public class Container {
 
     public String getAddress() {
         return Address;
+    }
+
+    public byte[] getSchedule() {
+        return Schedule;
     }
 }

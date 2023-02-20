@@ -4,9 +4,11 @@ import com.grum.geocalc.Coordinate;
 import com.grum.geocalc.EarthCalc;
 import com.grum.geocalc.Point;
 
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.*;
 import java.util.List;
+import java.util.logging.*;
 
 import static org.example.DataHandler.create_csv;
 
@@ -17,7 +19,16 @@ import static org.example.DataHandler.create_csv;
  * @version 1.1
  * @since   2023-01-23
  */
-public class GarbageOptimazer{
+public class GarbageOptimizer {
+    static Logger LOGGER;
+    static {
+        try(FileInputStream ins = new FileInputStream("C:\\Users\\RomeF\\OneDrive\\Документы\\GitHub\\GarbageOptimazer\\src\\main\\GarbageOptimizerLogging.properties")){
+            LogManager.getLogManager().readConfiguration(ins);
+            LOGGER = Logger.getLogger(GarbageOptimizer.class.getName());
+        }catch (Exception ignore){
+            ignore.printStackTrace();
+        }
+    }
     private List<Garage> Garages; // список гаражей
     private List<Container> _Containers; // Список контейнеров
     private List<List<Double>> DistanceMatrix; // Матрица расстояний
@@ -25,8 +36,8 @@ public class GarbageOptimazer{
     private List<Container> AllServiceCont;
     private List<Double> parentCluster;
 
-    public GarbageOptimazer() throws IOException {
-        createDistanceMatrix();
+    public GarbageOptimizer(int numberDay) throws IOException {
+        createDistanceMatrix(numberDay);
 
         AllServiceCont = new ArrayList<>();
     }
@@ -54,7 +65,9 @@ public class GarbageOptimazer{
      * @exception IOException Ошибки возникшие при чтении файла
      * @return List < List < Double >> - матрица расстояний.
      */
-    public List<List<Double>> createDistanceMatrix() throws IOException {
+    public List<List<Double>> createDistanceMatrix(int numberDay) throws IOException {
+        LOGGER.log(Level.INFO,"Номер дня "+ numberDay);
+
         Garages = new DataHandler().fillGarage();
         _Containers = new DataHandler().getContainers();
         List<List<Double>> distanceMatrix = new ArrayList<>();
@@ -65,12 +78,14 @@ public class GarbageOptimazer{
             Coordinate lng = Coordinate.fromDegrees(list.getLongitude());
             Point objFrom = Point.at(lat, lng);
             for (Container container : _Containers) {
-                list = container.getCoordinates();
-                lat = Coordinate.fromDegrees(list.getLatitude());
-                lng = Coordinate.fromDegrees(list.getLongitude());
-                Point objTo = Point.at(lat, lng);
-                double distance =  calculateDistance(objFrom,objTo);//in meters
-                row.add(distance);
+                if(container.getSchedule()[numberDay] == 1){
+                    list = container.getCoordinates();
+                    lat = Coordinate.fromDegrees(list.getLatitude());
+                    lng = Coordinate.fromDegrees(list.getLongitude());
+                    Point objTo = Point.at(lat, lng);
+                    double distance =  calculateDistance(objFrom,objTo);//in meters
+                    row.add(distance);
+                }
             }
             distanceMatrix.add(row);
         }
@@ -110,6 +125,7 @@ public class GarbageOptimazer{
     protected void findFcy() throws IOException {
         while (AllServiceCont.size() <= _Containers.size()){
             int indexOfFcy = getIndexOfLargest(sumDistance());
+
             Fcy = _Containers.get(indexOfFcy).getCoordinates();
 
             List<Garage> optimalGarages = getOptimalGarages(indexOfFcy);
@@ -122,12 +138,12 @@ public class GarbageOptimazer{
             List<String> toCsv = new ArrayList<>();
             int cnt = 1;
             for(Container container: bestCar.getServicesContainers()){
-                String row = container.getCoordinates().getLongitude()+","+ container.getCoordinates().getLatitude()+","+""+","+container.getAddress().replaceAll(",","~")+","+cnt;
+                String row = container.getCoordinates().getLongitude()+","+ container.getCoordinates().getLatitude()+"," +bestCar.getGarageId()+"|"+bestCar.getNumber()+ ","+container.getAddress().replaceAll(",","~")+","+cnt;
                 cnt++;
                 toCsv.add(row);
             }
             create_csv(toCsv);
-            break;
+
 
         }
 
@@ -185,9 +201,6 @@ public class GarbageOptimazer{
         Car bestCar = null;
         for (Garage garage : optimalGarages){
             for (Car car: garage.getCars()){
-                distance = DistanceMatrix.get((int)(garage.getId()-1)).get(indexOfFcy);
-                calculateMMetrix(car, distance);
-                calculateWorkingTime(car, distance);
                 if (checkCarCapacity(car, indexOfFcy) & !car.isInWork() & car.getTimeInWork()<8){
                     if (car.getM3() < tmpMinM){
                         bestCar = car;
@@ -228,6 +241,9 @@ public class GarbageOptimazer{
             container.setCarNumber(car.getNumber());
             car.setServicesContainers(container);
             container.setIsCater(true);
+            Double distance = DistanceMatrix.get((int) (car.getGarageId() - 1)).get(indexOfFcy);
+            calculateMMetrix(car, distance);
+            calculateWorkingTime(car, distance);
             double longCentroid = 0;
             double latCentroid = 0;
             for (Container serviceCont: car.getServicesContainers()){
@@ -322,9 +338,12 @@ public class GarbageOptimazer{
 
 }
 // QA Что делать с Бодайбо, до них ехать 30+ часов, как их вывозят сейчас?
+// QA Какие единицы измерения у значения объема КП?
 //TODO Ограничить работу алгоритма до Иркутска и Ангарска
 //TODO расчёт времени прибывания машины в работе
 //TODO проверка близости центроиды при выборе машины
+//TODO Ограничение по захвату
+//TODO Ограничение по дате выгрузки
 
 
 
