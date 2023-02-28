@@ -29,7 +29,7 @@ public class Container {
         Coordinates = coordinates;
         Volume = volume;
         Count = count;
-        AllVolume = Volume * Count * 1000;
+        AllVolume = Volume * Count;
         IsCater = false;
         CarNumber = null;
         Schedule = schedule;

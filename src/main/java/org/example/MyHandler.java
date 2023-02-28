@@ -7,7 +7,6 @@ public class MyHandler extends StreamHandler {
 
     @Override
     public void publish(LogRecord record) {
-        //add own logic to publish
         super.publish(record);
     }
 

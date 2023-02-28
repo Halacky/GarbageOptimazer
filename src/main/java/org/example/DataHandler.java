@@ -136,32 +136,37 @@ public class DataHandler {
         List<Container> containers = new ArrayList<>();
         String rowStr = "";
         Calendar nextM = getNextMonth(new Date());
-
+        int countRows = 0;
         for (Row row : sheet) {
-            rowStr = iterateRow(row);
-            int indexCityName = 0;
-            int indexLat = 10;
-            int indexLon = 11;
-            int indexAddress = 3;
-            int indexCount = 12;
-            int indexVolume = 13;
-            int indexSchedule = 14;
+            if (countRows == 0) {
+                countRows ++;
+            }else{
+                rowStr = iterateRow(row);
+                int indexCityName = 0;
+                int indexAddress = 3;
+                int indexLat = 10;
+                int indexLon = 11;
+                int indexCount = 12;
+                int indexVolume = 13;
+                int indexSchedule = 14;
 
-            double lat = Double.parseDouble(rowStr.split("~")[indexLat]);
-            double lon = Double.parseDouble(rowStr.split("~")[indexLon]);
-            int count = Integer.parseInt(rowStr.split("~")[indexCount]);
-            double volume = Double.parseDouble(rowStr.split("~")[indexVolume]);
-            String address = rowStr.split("~")[indexAddress];
-            Coordinates<Double, Double> coord = new Coordinates<>(lat, lon);
-            String schedule = rowStr.split("~")[indexSchedule];
-            String city = rowStr.split("~")[indexCityName];
+                double lat = Double.parseDouble(rowStr.split("~")[indexLat]);
+                double lon = Double.parseDouble(rowStr.split("~")[indexLon]);
+                double count = Double.parseDouble(rowStr.split("~")[indexCount]);
+                double volume = Double.parseDouble(rowStr.split("~")[indexVolume]);
+                String address = rowStr.split("~")[indexAddress];
+                Coordinates<Double, Double> coord = new Coordinates<>(lat, lon);
+                String schedule = rowStr.split("~")[indexSchedule];
+                String city = rowStr.split("~")[indexCityName];
 
 //            System.out.println(String.format("size= %s;data= %s;", containers.size()+1, nextM.getTime()));
 
-            byte[] hotPointSchedule = parseSchedule(schedule,nextM);
-            if(city.toLowerCase().contains("иркут") || city.toLowerCase().contains("ангар")){
-                containers.add(new Container(address, coord,volume,count,hotPointSchedule));
+                byte[] hotPointSchedule = parseSchedule(schedule,nextM);
+                if(city.toLowerCase().contains("иркут") || city.toLowerCase().contains("ангар") & volume!=0){
+                    containers.add(new Container(address, coord,volume,(int)count,hotPointSchedule));
+                }
             }
+
         }
         workbook.close();
         fis.close();
@@ -248,8 +253,6 @@ public class DataHandler {
         nextMonth.add(Calendar.DATE, -(oneHotIndex));
         return oneHotIndex;
     }
-
-
 
     /**
      * Метод предназначенный для преобразования графика вывоза к единому виду.
@@ -353,28 +356,40 @@ public class DataHandler {
         XSSFSheet sheet = createExcelHandler(Storage.Cars);
         List<Car> cars = new ArrayList<>();
         String rowStr = "";
+        int countRows = 0;
         for (Row row : sheet) {
-            rowStr = iterateRow(row);
-            int indexNumber = 2;
-            int indexTypeLoad = 7;
-            int indexGarage = 12;
-            int indexVolume = 13;
-            int indexCompactionRatio= 14;
-            int indexLoadCapacity= 15;
-            int indexFuel = 17;
-            int indexSchedule = 18;
-            int indexConsum = 27;
+            if (countRows == 0) {
+                countRows ++;
+                continue;
+            }
+            else {
+                countRows++;
+                rowStr = iterateRow(row);
+                int indexNumber = 2;
+                int indexTypeLoad = 7;
+                int indexGarage = 12;
+                int indexVolume = 13;
+                int indexCompactionRatio= 14;
+                int indexLoadCapacity= 15;
+                int indexFuel = 17;
+                int indexSchedule = 18;
+                int indexConsum = 27;
 
-            String number = rowStr.split("~")[indexNumber];
-            double loadType = Double.parseDouble(rowStr.split("~")[indexTypeLoad]);
-            double garageId = Double.parseDouble(rowStr.split("~")[indexGarage]);
-            double capacity = Double.parseDouble(rowStr.split("~")[indexLoadCapacity]);
-            double volume = Double.parseDouble(rowStr.split("~")[indexVolume]);
-            double compactionRatio = Double.parseDouble(rowStr.split("~")[indexCompactionRatio]);
-            String fuelType = rowStr.split("~")[indexFuel];
-            String schedule = rowStr.split("~")[indexSchedule];
-            double fuelConsum  =  Double.parseDouble(rowStr.split("~")[indexConsum]);
-            cars.add(new Car(number, capacity,loadType,garageId,fuelType,schedule,fuelConsum,compactionRatio,volume));
+                String number = rowStr.split("~")[indexNumber];
+                String loadType = rowStr.split("~")[indexTypeLoad];
+                double garageId = Double.parseDouble(rowStr.split("~")[indexGarage]);
+                double capacity = Double.parseDouble(rowStr.split("~")[indexLoadCapacity]);
+                double volume = Double.parseDouble(rowStr.split("~")[indexVolume]);
+                double compactionRatio = Double.parseDouble(rowStr.split("~")[indexCompactionRatio]);
+                String fuelType = rowStr.split("~")[indexFuel];
+                String schedule = rowStr.split("~")[indexSchedule];
+                double fuelConsum  =  Double.parseDouble(rowStr.split("~")[indexConsum]);
+                if(volume==0){
+                    continue;
+                }else{
+                    cars.add(new Car(number, capacity,loadType,garageId,fuelType,schedule,fuelConsum,compactionRatio,volume));
+                }
+            }
         }
         workbook.close();
         fis.close();

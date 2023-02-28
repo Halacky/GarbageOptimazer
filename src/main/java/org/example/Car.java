@@ -20,12 +20,12 @@ public class Car {
     private double Capacity; // Грузоподъемность
     private double Volume; // Объем кузова
     private double CompactionRatio; // Коэффициенет уплотнения
-    private double TypeOfGrab; // Тип пагрузки 1-Боковой, 2-Задний, 3-Бункеры, 4-универсальные
+    private String TypeOfGrab; // Тип пагрузки
     private Coordinates<Double, Double> Coordinates; // Местоположение машины
     private double GarageId; // Идентификатор гаража
     private String FuelType; // Тип топлива
     private String WorkSchedule; // График работы
-    private double FuelConsum; // Расход топлива на 1 км
+    private double FuelConsum; // Расход топлива на 100 км
     private List<Container> ServicesContainers; // Обслуженные машины
     private boolean InWork; // Индикатор, отображающий, находится ли машина в работе или нет
     private double TimeInWork; // Время в работе
@@ -38,7 +38,7 @@ public class Car {
      * @param fuelType Тип топлива
      * @param workSchedule График работы
      */
-    public Car(String number, double capacity,double typeOfGrab,double garageId, String fuelType,String workSchedule, double fuelConsum, double compactionRatio, double volume){
+    public Car(String number, double capacity,String typeOfGrab,double garageId, String fuelType,String workSchedule, double fuelConsum, double compactionRatio, double volume){
         Centroid = null;
         Number = number;
         Capacity = capacity;
@@ -51,7 +51,7 @@ public class Car {
         CompactionRatio = compactionRatio;
         Volume = volume;
         InWork = false;
-        TimeInWork = 0;
+        TimeInWork = 7;
     }
 
     public Coordinates<Double, Double> getCentroid() {
@@ -69,7 +69,7 @@ public class Car {
     public void setCapacity(double capacity) {
         Capacity = capacity;
     }
-    public double getTypeOfGrab() {
+    public String getTypeOfGrab() {
         return TypeOfGrab;
     }
     public double getFuelConsum() {

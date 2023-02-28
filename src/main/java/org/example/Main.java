@@ -12,7 +12,7 @@ public class Main
             int countDays = DataHandler.getNextMonth(new Date()).getActualMaximum(Calendar.DAY_OF_MONTH);
             for (int i = 0; i<countDays;i++){
                 GarbageOptimizer go = new GarbageOptimizer(i);
-//                go.findFcy();
+                go.findFcy();
                 break;
             }
             System.out.println();
