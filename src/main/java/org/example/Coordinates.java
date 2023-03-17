@@ -5,7 +5,7 @@ public class Coordinates<Lat,Lon> {
     private final Lon longitude;
     private final Lat latitude;
 
-    public Coordinates(Lon longitude, Lat latitude) {
+    public Coordinates(Lat latitude,Lon longitude) {
         assert longitude != null;
         assert latitude != null;
 

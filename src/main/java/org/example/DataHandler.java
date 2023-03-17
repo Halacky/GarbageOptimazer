@@ -5,8 +5,6 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.*;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
@@ -57,14 +55,15 @@ public class DataHandler {
      *     <li>Столбец с индексом indexLon - долгота гаража</li>
      *     <li>Столбец с индексом indexGarageID - Идентификатор гаража</li>
      * </ol>
-     * @return Список объектов типа Garage
+     * @return Список объектов типа Place
      * @throws IOException Ошибки возникшие при чтении файла
      */
-    private List<Garage> getGarage() throws IOException {
+    private List<Place> getGarage() throws IOException {
         // Получаем первый лист Excel файла
-        XSSFSheet sheet = createExcelHandler( Storage.Garage);
-        List<Garage> garages = new ArrayList<>();
+        XSSFSheet sheet = createExcelHandler(Storage.Garage);
+        List<Place> places = new ArrayList<>();
         String rowStr = "";
+        int idd = 0;
         for (Row row : sheet) {
             rowStr = iterateRow(row);
             int indexLat = 2;
@@ -74,46 +73,41 @@ public class DataHandler {
 
             double lat = Double.parseDouble(rowStr.split("~")[indexLat]);
             double lon = Double.parseDouble(rowStr.split("~")[indexLon]);
-            double id = Double.parseDouble(rowStr.split("~")[indexGarageID]);
+            double index = Double.parseDouble(rowStr.split("~")[indexGarageID]);
             String address = rowStr.split("~")[indexAddress];
             Coordinates<Double, Double> coord = new Coordinates<>(lat, lon);
-            garages.add(new Garage(id, address, coord));
+            if(index == 6 || index == 5 || index == 0){
+                places.add(new Place(idd, address, coord, index));
+                idd++;
+            }
         }
         workbook.close();
         fis.close();
 
-        List<String> toCsv = new ArrayList<>();
-        int cnt = 1;
-        for(Garage garage: garages){
-            String row = garage.getCoordinates().getLongitude()+","+ garage.getCoordinates().getLatitude()+","+"Garage,"+garage.getAddress().replaceAll(",","~")+","+cnt;
-            cnt++;
-            toCsv.add(row);
-        }
-        create_csv(toCsv);
-
-        return garages;
+        return places;
     }
 
     /**
      * Метод предназначенный для наполнения гаражей информацией об находящихся в них машинах.
-     * @return Список объектов типа Garage
+     * @return Список объектов типа Place
      * @throws IOException Ошибки возникшие при чтении файла
      */
-    public List<Garage> fillGarage() throws IOException {
-        List<Garage> garages = getGarage();
+    public List<Place> fillGarage() throws IOException {
+        List<Place> places = getGarage();
         List<Car> cars = getCars();
 
-        for(Garage garage: garages) {
+        for(Place place : places) {
             List<Car> tmpCars = new ArrayList<>();
             for (Car car : cars) {
-                if (garage.getId()==car.getGarageId()){
-                    car.setCoordinates(garage.getCoordinates());
+                if (place.getGarageIndex()==car.getGarageId()){
+                    car.setCoordinates(place.getCoordinates());
                     tmpCars.add(car);
                 }
             }
-            garage.setCars(tmpCars);
+            place.setCars(tmpCars);
         }
-        return garages;
+
+        return places;
     }
 
     /**
@@ -130,7 +124,7 @@ public class DataHandler {
      * @return Список объектов типа Containers
      * @throws IOException Ошибки возникшие при чтении файла
      */
-    protected List<Container> getContainers() throws IOException {
+    protected List<Container> getContainers(int numberDay) throws IOException {
         // Получаем первый лист Excel файла
         XSSFSheet sheet = createExcelHandler(Storage.Containers);
         List<Container> containers = new ArrayList<>();
@@ -162,7 +156,7 @@ public class DataHandler {
 //            System.out.println(String.format("size= %s;data= %s;", containers.size()+1, nextM.getTime()));
 
                 byte[] hotPointSchedule = parseSchedule(schedule,nextM);
-                if(city.toLowerCase().contains("иркут") || city.toLowerCase().contains("ангар") & volume!=0){
+                if(city.toLowerCase().contains("иркут") || city.toLowerCase().contains("ангар") & volume!=0 & hotPointSchedule[numberDay] == 1){
                     containers.add(new Container(address, coord,volume,(int)count,hotPointSchedule));
                 }
             }
@@ -172,6 +166,31 @@ public class DataHandler {
         fis.close();
 
         return containers;
+    }
+
+    protected List<Polygon> getPolygons() throws IOException {
+        // Получаем первый лист Excel файла
+        XSSFSheet sheet = createExcelHandler(Storage.Polygons);
+        List<Polygon> polygons = new ArrayList<>();
+        String rowStr = "";
+        for (Row row : sheet) {
+            rowStr = iterateRow(row);
+            int indexLat = 2;
+            int indexLon = 3;
+            int indexAddress = 1;
+            int indexGarageID = 0;
+
+            double lat = Double.parseDouble(rowStr.split("~")[indexLat]);
+            double lon = Double.parseDouble(rowStr.split("~")[indexLon]);
+            double id = Double.parseDouble(rowStr.split("~")[indexGarageID]);
+            String address = rowStr.split("~")[indexAddress];
+            Coordinates<Double, Double> coord = new Coordinates<>(lat, lon);
+            polygons.add(new Polygon((int)id, address, coord));
+        }
+        workbook.close();
+        fis.close();
+
+        return polygons;
     }
 
     /**
@@ -213,9 +232,7 @@ public class DataHandler {
         else if(day.contains("суб")|| day.contains("сб")){
             numDay = 6;
         }
-        else if(day.contains("вос")|| day.contains("вс")){
-            numDay = 0;
-        }
+        else if(day.contains("вос")|| day.contains("вс")){}
         return numDay;
     }
 
@@ -245,9 +262,7 @@ public class DataHandler {
             }
             if (count==cnt){
                 oneHotIndex = currentDate.getDate();
-
                 break;
-
             }
         }
         nextMonth.add(Calendar.DATE, -(oneHotIndex));
@@ -287,14 +302,9 @@ public class DataHandler {
             }else if(day.toLowerCase().contains("четверт")){
                 oneHot[createOneHot(combineDay,nextMonth,4) - 1] = 1;
             }else if(day.toLowerCase().contains("ежед")){
-                //По заявке
-                //Каждый (2) Чт, Каждый (4) Чт
-                //1Р/МЕС ПО ЗАЯВКЕ
-                //ПО ЗАЯВКАМ
                 Arrays.fill(oneHot, (byte)1);
-            } else if (day.toLowerCase().contains("заяв")) {
-                continue;
-            } else {
+            } else if (day.toLowerCase().contains("заяв")) { }
+            else {
                 try {
                     int numberOfWeek = getNumberDayOnWeek(day);
                     for(int i = 0; i<countDays-1;i++) {
@@ -360,7 +370,6 @@ public class DataHandler {
         for (Row row : sheet) {
             if (countRows == 0) {
                 countRows ++;
-                continue;
             }
             else {
                 countRows++;

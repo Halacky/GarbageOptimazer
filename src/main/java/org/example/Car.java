@@ -16,11 +16,12 @@ public class Car {
     private double M1; // М1 - метрика холостого хода
     private double M2; // М2 - метрика удельного расхода топлива
     private double M3; // М3 - модифицированная метрика М2
-    private Coordinates<Double, Double> Centroid; // Центроид обрабатываемого класстера
+    private Coordinates<Double, Double> Centroid; // Центроид обрабатываемого кластера
     private double Capacity; // Грузоподъемность
     private double Volume; // Объем кузова
-    private double CompactionRatio; // Коэффициенет уплотнения
-    private String TypeOfGrab; // Тип пагрузки
+    private double FreeVolume;
+    private double CompactionRatio; // Коэффициент уплотнения
+    private String TypeOfGrab; // Тип погрузки
     private Coordinates<Double, Double> Coordinates; // Местоположение машины
     private double GarageId; // Идентификатор гаража
     private String FuelType; // Тип топлива
@@ -29,6 +30,7 @@ public class Car {
     private List<Container> ServicesContainers; // Обслуженные машины
     private boolean InWork; // Индикатор, отображающий, находится ли машина в работе или нет
     private double TimeInWork; // Время в работе
+    private String GarageName;
 
     /**
      * @param number Гос. номер
@@ -52,6 +54,7 @@ public class Car {
         Volume = volume;
         InWork = false;
         TimeInWork = 7;
+        FreeVolume = Volume;
     }
 
     public Coordinates<Double, Double> getCentroid() {
@@ -100,12 +103,29 @@ public class Car {
     public boolean isInWork() {
         return InWork;
     }
-
     public void setTimeInWork(double timeInWork) {
         TimeInWork = timeInWork;
     }
-
     public double getTimeInWork() {
         return TimeInWork;
+    }
+    public double getCompactionRatio() {
+        return CompactionRatio;
+    }
+
+    public double getFreeVolume() {
+        return FreeVolume;
+    }
+
+    public void setFreeVolume(double freeVolume) {
+        FreeVolume = freeVolume;
+    }
+
+    public double getVolume() {
+        return Volume;
+    }
+
+    public String getGarageName() {
+        return GarageName;
     }
 }

@@ -1,7 +1,7 @@
 package org.example;
 
 import java.util.List;
-import java.util.Map;
+import java.util.function.Predicate;
 
 /**
  * <h1>Класс сущности "гараж"</h1>
@@ -10,22 +10,25 @@ import java.util.Map;
  * @version 1.1
  * @since   2023-01-10
  */
-public class Garage {
+public class Place implements Comparable<Place>{
     private double Id; // Идентификатор гаража
     private String Address; // Адрес гаража
     private List<Car> Cars; // Список машин, находящихся в гараже
     private Coordinates<Double,Double> Coordinates; // Координаты гаража
+    private Double DistanceToFcy;
+    private double GarageIndex;
 
     /**
      * @param id Идентификатор гаража
      * @param address Адрес гаража
      * @param coordinates Координаты гаража
      */
-    public Garage(double id, String address, Coordinates<Double,Double> coordinates){
+    public Place(double id, String address, Coordinates<Double,Double> coordinates, double index){
         Id = id;
         Address = address;
         Coordinates = coordinates;
         Cars = null;
+        GarageIndex = index;
     }
 
     public Coordinates<Double, Double> getCoordinates() {
@@ -48,4 +51,30 @@ public class Garage {
         return Address;
     }
 
+    public Double getDistanceToFcy() {
+        return DistanceToFcy;
+    }
+
+    public void setDistanceToFcy(Double distanceToFcy) {
+        DistanceToFcy = distanceToFcy;
+    }
+
+    @Override
+    public int compareTo(Place o) {
+        if (getDistanceToFcy() == null || o.getDistanceToFcy() == null) {
+            return 0;
+        }
+        return getDistanceToFcy().compareTo(o.getDistanceToFcy());
+    }
+
+    public double getGarageIndex() {
+        return GarageIndex;
+    }
+
+    public static Place getPlaceById(int pid, List<Place> list) {
+        Place place = list.stream()
+                .filter(findEmp -> pid == findEmp.getId())
+                .findAny().orElse(null);
+        return place;
+    }
 }

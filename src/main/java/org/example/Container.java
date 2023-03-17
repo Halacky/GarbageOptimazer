@@ -57,4 +57,8 @@ public class Container {
     public byte[] getSchedule() {
         return Schedule;
     }
+
+    public boolean getIsCater() {
+        return IsCater;
+    }
 }
