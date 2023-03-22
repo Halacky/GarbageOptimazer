@@ -96,9 +96,16 @@ public class GarbageOptimizer {
      * @param to Конечная точка
      * @return  Double - расстояниме между точками.
      */
-    protected double calculateDistance(Coordinates from, Coordinates to) throws IOException {
+    protected double calculateDistance(Coordinates<Double,Double> from, Coordinates<Double,Double> to) throws IOException {
+//        Coordinate lat = Coordinate.fromDegrees(from.getLatitude());
+//        Coordinate lng = Coordinate.fromDegrees(from.getLongitude());
+//        Point objFrom = Point.at(lat, lng);
+//        lat = Coordinate.fromDegrees(to.getLatitude());
+//        lng = Coordinate.fromDegrees(to.getLongitude());
+//        Point objTo = Point.at(lat, lng);
+//        return EarthCalc.haversine.distance(objFrom, objTo);
         GraphhopperPathDetails gh = new GraphhopperPathDetails();
-        gh.createRouteV2(from, to);
+        gh.createRoute(from, to);
         return gh.getDistance();
     }
 
@@ -123,7 +130,7 @@ public class GarbageOptimizer {
         int cnt = 1;
         for(Place place : places){
 
-            String row = place.getCoordinates().getLongitude()+","+ place.getCoordinates().getLatitude()+","+"Place,"+ place.getAddress().replaceAll(",","~")+","+cnt;
+            String row = place.getCoordinates().getLatitude()+","+ place.getCoordinates().getLongitude()+","+"Place,"+ place.getAddress().replaceAll(",","~")+","+cnt;
             cnt++;
             toCsv.add(row);
 
@@ -158,7 +165,8 @@ public class GarbageOptimizer {
         List<String> toCsv = new ArrayList<>();
         int cnt = 1;
         for(Container container: bestCar.getServicesContainers()){
-            String row = container.getCoordinates().getLongitude()+","+ container.getCoordinates().getLatitude()+"," +Place.getPlaceById(garageIndex, places).getAddress().replaceAll(" ", "")+"|"+bestCar.getNumber()+ ","+container.getAddress().replaceAll(",","~")+","+cnt;
+            String row = container.getCoordinates().getLatitude()+","+ container.getCoordinates().getLongitude()
+                    +"," +Place.getPlaceById(garageIndex, places).getAddress().replaceAll(" ", "")+"|"+bestCar.getNumber()+ ","+container.getAddress().replaceAll(",","~")+","+cnt;
             cnt++;
             toCsv.add(row);
         }
@@ -215,7 +223,7 @@ public class GarbageOptimizer {
         return bestCar.getFreeVolume() >= CurrentDayContainers.get(index).getAllVolume()/bestCar.getCompactionRatio();
     }
     private boolean checkWorkingTime(Car bestCar){
-        return bestCar.getTimeInWork()<=15;
+        return bestCar.getTimeInWork()<=22;
     }
 
     /**

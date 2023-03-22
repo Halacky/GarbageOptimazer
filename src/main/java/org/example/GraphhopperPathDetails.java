@@ -36,18 +36,36 @@ public class GraphhopperPathDetails {
         decimalFormatSymbols.setDecimalSeparator('.');
         DecimalFormat decimalFormat = new DecimalFormat("##.000000", decimalFormatSymbols);
 //        System.out.println(latFrom+" "+lonFrom+" "+latTo+" "+lonTo); //1,237,516.25
+        String[] apis = new String[]{"d7de41b1-fc61-4b4d-be55-7fb703bac6b6", "c7131e9e-4ac1-48c7-bbff-dc968cbfbf8e",
+                                    "c171c013-39f2-4e1e-8b68-2ac3d17df957", "aa29ceee-b357-4f50-868c-ed07ea2040c9",
+        "0de4e8bd-da99-403d-b632-22b333b028e2", "dfd4b486-ec51-4ade-b26c-6740650e8283"};
 
         HttpClient client = HttpClientBuilder.create().build();
+        int index = 0;
         String req = "https://graphhopper.com/api/1/route?point="+decimalFormat.format(latFrom)+
                 ","+decimalFormat.format(lonFrom)+"&point="+decimalFormat.format(latTo) +","+decimalFormat.format(lonTo)
-                +"&vehicle=truck&points_encoded=false&instructions=false&elevation=false&calc_points=true&key=d7de41b1-fc61-4b4d-be55-7fb703bac6b6";
+                +"&vehicle=truck&points_encoded=false&instructions=false&elevation=false&calc_points=true&key="+apis[index];
+
+
         HttpGet request = new HttpGet(req);
 
         try {
             HttpResponse response = client.execute(request);
             HttpEntity entity = response.getEntity();
             String content = EntityUtils.toString(entity);
-//            System.out.println(content);
+            System.out.println(req);
+            System.out.println(content);
+
+            if(content.contains("message")){
+                index++;
+                req = "https://graphhopper.com/api/1/route?point="+decimalFormat.format(latFrom)+
+                        ","+decimalFormat.format(lonFrom)+"&point="+decimalFormat.format(latTo) +","+decimalFormat.format(lonTo)
+                        +"&vehicle=truck&points_encoded=false&instructions=false&elevation=false&calc_points=true&key="+apis[index];
+                request = new HttpGet(req);
+                response = client.execute(request);
+                entity = response.getEntity();
+                content = EntityUtils.toString(entity);
+            }
             JSONObject jsonObject = new JSONObject(content);
             JSONArray pathsArray = jsonObject.getJSONArray("paths");
 
@@ -60,11 +78,12 @@ public class GraphhopperPathDetails {
                     JSONArray coordinate = coordinatesArray.getJSONArray(j);
                     double longitude = coordinate.getDouble(0);
                     double latitude = coordinate.getDouble(1);
-                    System.out.println("Distance: " + Distance + ", Time: " + Time + ", Longitude: " + longitude + ", Latitude: " + latitude);
+//                    System.out.println("Distance: " + Distance + ", Time: " + Time + ", Longitude: " + longitude + ", Latitude: " + latitude);
                 }
             }
 
-        } catch (IOException e) {
+        } catch (Exception e) {
+//            createRoute(from,to);
             e.printStackTrace();
         }
     }

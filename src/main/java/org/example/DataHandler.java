@@ -245,7 +245,12 @@ public class DataHandler {
      * @return Индекс дня месяца, в который необходимо осуществить вывоз
      */
     private int createOneHot(List<String> combineDay,  Calendar nextMonth, int cnt){
-        int numDay = getNumberDayOnWeek(combineDay.get(1));
+        int numDay = 0;
+        if (combineDay.contains("Каждый")) {
+            numDay = getNumberDayOnWeek(combineDay.get(2));
+        }else {
+            numDay = getNumberDayOnWeek(combineDay.get(1));
+        }
         int countDays = nextMonth.getActualMaximum(Calendar.DAY_OF_MONTH);
         int count = 0;
         int oneHotIndex = 0;
@@ -285,31 +290,30 @@ public class DataHandler {
         int countDays = nextMonth.getActualMaximum(Calendar.DAY_OF_MONTH);
 
         String[] partOfSchedule = schedule.split(",");
+        List<String> newSchedulePart = new ArrayList<>();
+        for (String str : partOfSchedule) {
+            str = str.trim();
+            newSchedulePart.add(str);
+        }
+        newSchedulePart.removeIf(String::isEmpty);
+
         byte[] oneHot = new byte[countDays];
-        for(String day: partOfSchedule){
+        for(String day: newSchedulePart){
+//            System.out.println("day:"+day+".");
+
             int numOfDay = tryParseInt(day);
             List<String> combineDay = new ArrayList<String>(Arrays.asList(day.split(" ")));;
             combineDay.removeAll(Arrays.asList("", null));
             if(numOfDay != 0 & numOfDay<=countDays){
                 oneHot[numOfDay-1] = 1;
-            }
-            else if (day.toLowerCase().contains("перв")){
-                oneHot[createOneHot(combineDay,nextMonth,1) - 1] = 1;
-            } else if (day.toLowerCase().contains("второ")) {
-                oneHot[createOneHot(combineDay,nextMonth,2) - 1] = 1;
-            } else if (day.toLowerCase().contains("трет")) {
-                oneHot[createOneHot(combineDay,nextMonth,3) - 1] = 1;
-            }else if(day.toLowerCase().contains("четверт")){
-                oneHot[createOneHot(combineDay,nextMonth,4) - 1] = 1;
-            }else if(day.toLowerCase().contains("ежед")){
+            }else if(day.toLowerCase().contains("ежед") | combineDay.size() == 7){
                 Arrays.fill(oneHot, (byte)1);
-            } else if (day.toLowerCase().contains("заяв")) { }
-            else {
+            }
+            else if(combineDay.size()==1) {
                 try {
                     int numberOfWeek = getNumberDayOnWeek(day);
                     for(int i = 0; i<countDays-1;i++) {
                         Date currentDate = nextMonth.getTime();
-//                        System.out.println(currentDate);
                         if (numberOfWeek == currentDate.getDay()) {
                             oneHot[currentDate.getDate() - 1] = 1;
                         }
@@ -320,8 +324,17 @@ public class DataHandler {
                 }catch (Exception e){
                     System.out.println();
                 }
-
             }
+            else if (day.toLowerCase().contains("перв") | combineDay.get(1).contains("1")){
+                oneHot[createOneHot(combineDay,nextMonth,1) - 1] = 1;
+            } else if (day.toLowerCase().contains("второ")| combineDay.get(1).contains("2")) {
+                oneHot[createOneHot(combineDay,nextMonth,2) - 1] = 1;
+            } else if (day.toLowerCase().contains("трет") | combineDay.get(1).contains("3")) {
+                oneHot[createOneHot(combineDay,nextMonth,3) - 1] = 1;
+            }else if(day.toLowerCase().contains("четверт") | combineDay.get(1).contains("4")){
+                oneHot[createOneHot(combineDay,nextMonth,4) - 1] = 1;
+            }else if (day.toLowerCase().contains("заяв")) { }
+
         }
         return oneHot;
     }
