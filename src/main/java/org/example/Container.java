@@ -24,7 +24,7 @@ public class Container {
      * @param volume Объем КП
      * @param count Кол-во КП
      */
-    public Container(String address, Coordinates<Double, Double> coordinates, double volume, int count,byte[] schedule ){
+    public Container(String address, Coordinates<Double, Double> coordinates, double volume, int count,byte[] schedule, double grubType){
         Address = address;
         Coordinates = coordinates;
         Volume = volume;
@@ -33,6 +33,7 @@ public class Container {
         IsCater = false;
         CarNumber = null;
         Schedule = schedule;
+        TypeOfGrap = grubType;
     }
     public Coordinates<Double, Double> getCoordinates() {
         return Coordinates;
@@ -60,5 +61,9 @@ public class Container {
 
     public boolean getIsCater() {
         return IsCater;
+    }
+
+    public double getTypeOfGrap() {
+        return TypeOfGrap;
     }
 }

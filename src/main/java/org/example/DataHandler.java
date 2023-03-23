@@ -143,6 +143,7 @@ public class DataHandler {
                 int indexCount = 12;
                 int indexVolume = 13;
                 int indexSchedule = 14;
+                int indexTypeOfGrub = 21;
 
                 double lat = Double.parseDouble(rowStr.split("~")[indexLat]);
                 double lon = Double.parseDouble(rowStr.split("~")[indexLon]);
@@ -152,12 +153,14 @@ public class DataHandler {
                 Coordinates<Double, Double> coord = new Coordinates<>(lat, lon);
                 String schedule = rowStr.split("~")[indexSchedule];
                 String city = rowStr.split("~")[indexCityName];
+                double grubType = Double.parseDouble(rowStr.split("~")[indexTypeOfGrub]);
+
 
 //            System.out.println(String.format("size= %s;data= %s;", containers.size()+1, nextM.getTime()));
 
                 byte[] hotPointSchedule = parseSchedule(schedule,nextM);
-                if(city.toLowerCase().contains("иркут") || city.toLowerCase().contains("ангар") & volume!=0 & hotPointSchedule[numberDay] == 1){
-                    containers.add(new Container(address, coord,volume,(int)count,hotPointSchedule));
+                if(city.toLowerCase().contains("ангар") & volume!=0 & hotPointSchedule[numberDay] == 1){
+                    containers.add(new Container(address, coord,volume,(int)count,hotPointSchedule,grubType));
                 }
             }
 
@@ -398,7 +401,7 @@ public class DataHandler {
                 int indexConsum = 27;
 
                 String number = rowStr.split("~")[indexNumber];
-                String loadType = rowStr.split("~")[indexTypeLoad];
+                Double loadType = Double.parseDouble(rowStr.split("~")[indexTypeLoad]);
                 double garageId = Double.parseDouble(rowStr.split("~")[indexGarage]);
                 double capacity = Double.parseDouble(rowStr.split("~")[indexLoadCapacity]);
                 double volume = Double.parseDouble(rowStr.split("~")[indexVolume]);

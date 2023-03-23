@@ -21,7 +21,7 @@ public class Car {
     private double Volume; // Объем кузова
     private double FreeVolume;
     private double CompactionRatio; // Коэффициент уплотнения
-    private String TypeOfGrab; // Тип погрузки
+    private double TypeOfGrab; // Тип погрузки
     private Coordinates<Double, Double> Coordinates; // Местоположение машины
     private double GarageId; // Идентификатор гаража
     private String FuelType; // Тип топлива
@@ -40,7 +40,7 @@ public class Car {
      * @param fuelType Тип топлива
      * @param workSchedule График работы
      */
-    public Car(String number, double capacity,String typeOfGrab,double garageId, String fuelType,String workSchedule, double fuelConsum, double compactionRatio, double volume){
+    public Car(String number, double capacity,double typeOfGrab,double garageId, String fuelType,String workSchedule, double fuelConsum, double compactionRatio, double volume){
         Centroid = null;
         Number = number;
         Capacity = capacity;
@@ -72,7 +72,7 @@ public class Car {
     public void setCapacity(double capacity) {
         Capacity = capacity;
     }
-    public String getTypeOfGrab() {
+    public double getTypeOfGrab() {
         return TypeOfGrab;
     }
     public double getFuelConsum() {
