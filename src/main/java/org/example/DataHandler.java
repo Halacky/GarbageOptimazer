@@ -1,6 +1,8 @@
 package org.example;
 
 import java.io.*;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
@@ -149,18 +151,22 @@ public class DataHandler {
                 double lon = Double.parseDouble(rowStr.split("~")[indexLon]);
                 double count = Double.parseDouble(rowStr.split("~")[indexCount]);
                 double volume = Double.parseDouble(rowStr.split("~")[indexVolume]);
-                String address = rowStr.split("~")[indexAddress];
+                String address = rowStr.split("~")[indexAddress].replaceAll("\n", "");
                 Coordinates<Double, Double> coord = new Coordinates<>(lat, lon);
                 String schedule = rowStr.split("~")[indexSchedule];
                 String city = rowStr.split("~")[indexCityName];
                 double grubType = Double.parseDouble(rowStr.split("~")[indexTypeOfGrub]);
+                nextM = getNextMonth(new Date());
 
 
 //            System.out.println(String.format("size= %s;data= %s;", containers.size()+1, nextM.getTime()));
-
+                if(address.equals("Ангарск, ул. Садовая, напротив участка 2а")){
+                    System.out.println();
+                }
                 byte[] hotPointSchedule = parseSchedule(schedule,nextM);
                 if(city.toLowerCase().contains("ангар") & volume!=0 & hotPointSchedule[numberDay] == 1){
                     containers.add(new Container(address, coord,volume,(int)count,hotPointSchedule,grubType));
+
                 }
             }
 
@@ -303,19 +309,19 @@ public class DataHandler {
         byte[] oneHot = new byte[countDays];
         for(String day: newSchedulePart){
 //            System.out.println("day:"+day+".");
-
+            nextMonth = getNextMonth(new Date());
             int numOfDay = tryParseInt(day);
             List<String> combineDay = new ArrayList<String>(Arrays.asList(day.split(" ")));;
             combineDay.removeAll(Arrays.asList("", null));
             if(numOfDay != 0 & numOfDay<=countDays){
                 oneHot[numOfDay-1] = 1;
-            }else if(day.toLowerCase().contains("ежед") | combineDay.size() == 7){
+            }else if(day.toLowerCase().contains("ежед") | newSchedulePart.size() == 7){
                 Arrays.fill(oneHot, (byte)1);
             }
             else if(combineDay.size()==1) {
                 try {
                     int numberOfWeek = getNumberDayOnWeek(day);
-                    for(int i = 0; i<countDays-1;i++) {
+                    for(int i = 0; i<countDays;i++) {
                         Date currentDate = nextMonth.getTime();
                         if (numberOfWeek == currentDate.getDay()) {
                             oneHot[currentDate.getDate() - 1] = 1;
@@ -409,9 +415,7 @@ public class DataHandler {
                 String fuelType = rowStr.split("~")[indexFuel];
                 String schedule = rowStr.split("~")[indexSchedule];
                 double fuelConsum  =  Double.parseDouble(rowStr.split("~")[indexConsum]);
-                if(volume==0){
-                    continue;
-                }else{
+                if(volume!=0){
                     cars.add(new Car(number, capacity,loadType,garageId,fuelType,schedule,fuelConsum,compactionRatio,volume));
                 }
             }
@@ -422,17 +426,39 @@ public class DataHandler {
         return cars;
     }
     public static void create_csv(List<String> args) throws IOException {
-        try (BufferedWriter writer = Files.newBufferedWriter(Paths.get("test.csv"),StandardOpenOption.APPEND,
-                StandardOpenOption.CREATE)) {
-            writer.write('\ufeff');
-            CSVPrinter csvPrinter = new CSVPrinter(writer, CSVFormat.DEFAULT);
+        String filename = "example.csv";
+        String delimiter = ",";
+        String[] header = {"Lat", "Lon", "Descr", "Sub", "Num"};
 
-            for(String row: args){
-                List<String> items = Arrays.asList(row.split(","));
-                csvPrinter.printRecord(items.get(0),items.get(1),items.get(2),items.get(3),items.get(4));
+        try (FileOutputStream fos = new FileOutputStream(new File(filename), true);
+             OutputStreamWriter osw = new OutputStreamWriter(fos, StandardCharsets.UTF_8);
+             BufferedWriter writer = new BufferedWriter(osw)) {
+            // Check if file is empty, if yes, write header row
+
+            if (fos.getChannel().size() == 0) {
+                for (int i = 0; i < header.length; i++) {
+                    writer.append(header[i]);
+                    if (i != header.length - 1) {
+                        writer.append(delimiter);
+                    }
+                }
+                writer.append("\n");
+            }
+            for (String row: args)
+            {
+                String[] splitedRow = row.split(",");
+                writer.append(splitedRow[0]+ delimiter);
+                writer.append(splitedRow[1]+delimiter);
+                writer.append(splitedRow[2] +delimiter);
+                writer.append(splitedRow[3]+delimiter);
+                writer.append(splitedRow[4]);
+                writer.append("\n");
             }
 
-            csvPrinter.flush();
+
+            System.out.println("CSV file created successfully.");
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 

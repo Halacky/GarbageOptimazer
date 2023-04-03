@@ -31,6 +31,7 @@ public class Car {
     private boolean InWork; // Индикатор, отображающий, находится ли машина в работе или нет
     private double TimeInWork; // Время в работе
     private String GarageName;
+    private double MaxRadiusAroundCentroid;
 
     /**
      * @param number Гос. номер
@@ -127,5 +128,13 @@ public class Car {
 
     public String getGarageName() {
         return GarageName;
+    }
+
+    public double getMaxRadiusAroundCentroid() {
+        return MaxRadiusAroundCentroid;
+    }
+
+    public void setMaxRadiusAroundCentroid(double maxRadiusAroundCentroid) {
+        MaxRadiusAroundCentroid = maxRadiusAroundCentroid;
     }
 }
