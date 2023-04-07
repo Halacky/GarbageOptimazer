@@ -24,6 +24,15 @@ public class Main
                     System.out.println();
                 }
                 go.findFcy(i);
+//                for (Place place : go.getPlaces()) {
+//                    for (Car car : place.getCars()) {
+//                        for (Container container : car.getServicesContainers()) {
+//                            if(container.getCarNumber()!=null){
+//                                System.out.println();
+//                            }
+//                        }
+//                    }
+//                }
 //                go.test();
 
             }

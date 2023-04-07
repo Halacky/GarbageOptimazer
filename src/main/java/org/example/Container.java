@@ -7,7 +7,7 @@ package org.example;
  * @version 1.1
  * @since   2023-01-10
  */
-public class Container {
+public class Container implements Cloneable {
     private String Address; // Адрес КП
     private Coordinates<Double, Double> Coordinates; // Коордианты КП
     private double TypeOfGrap; // Тип захвата
@@ -65,5 +65,14 @@ public class Container {
 
     public double getTypeOfGrap() {
         return TypeOfGrap;
+    }
+
+    public String getCarNumber() {
+        return CarNumber;
+    }
+
+    @Override
+    protected Object clone() throws CloneNotSupportedException {
+        return super.clone();
     }
 }

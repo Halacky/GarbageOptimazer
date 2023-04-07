@@ -145,19 +145,6 @@ public class GarbageOptimizer {
         create_csv(toCsv);
     }
 
-    private void writeCurrentToCsv() throws IOException {
-        List<String> toCsv = new ArrayList<>();
-        int cnt = 1;
-        for(Container garage: CurrentDayContainers){
-
-            String row = garage.getCoordinates().getLongitude()+","+ garage.getCoordinates().getLatitude()+","+"Current,"+garage.getAddress().replaceAll(",","~")+","+cnt;
-            cnt++;
-            toCsv.add(row);
-
-        }
-        create_csv(toCsv);
-    }
-
     private void writeContainersToCsv(Car bestCar, int numberOfDay) throws IOException {
         int garageIndex = 0;
         for (Place place : Places){
@@ -181,29 +168,41 @@ public class GarbageOptimizer {
         create_csv(toCsv);
     }
 
+    private void servicePreviousCont(int day){
+        List<Container> contTmp =  new ArrayList(CurrentDayContainers);;
+        for(Place place:Places){
+            for(Car car: place.getCars()){
+                for(Container cont: car.getServicesContainers()){
+                    for(Container currentCont: contTmp){
+                        if(cont.getAddress().equals(currentCont.getAddress()) & cont.getSchedule()[day]==1){
+                            int index = CurrentDayContainers.indexOf(currentCont);
+                            if(index != -1){
+                                removeTemporaryOT(index);
+                                AllServiceCont.add(currentCont);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
     /**
      * Метод предназначенный для нахождения самой удаленной точки назначения.
      */
     protected void findFcy(int numberDay) throws IOException {
-//        writeGaragesToCsv();
+
         System.out.println("Last group servicing not to end");
 
         for (int t = 1;t<=5;t++){
-            if(DistanceMatrix != null && DistanceMatrix.get(0).size() != 0){
-                LOGGER.log(Level.INFO,"~~~~~~~~~~~~~stop~~~~~~~~~~~~~~");
 
-            }
             createDistanceMatrix(numberDay, t);
 
+            servicePreviousCont(numberDay);
             while (CurrentDayContainers.size()!=0){
 
                 int indexOfFcy = getIndexOfLargest(sumDistance());
                 if (CurrentDayContainers.get(indexOfFcy).getIsCater()) continue;
                 Places = getOptimalCarPlace(indexOfFcy);
-                if(numberDay==23){
-                    System.out.println("Last group servicing not to end");
-
-                }
                 Car bestCar = null;
                 for (int i=0; i<3;i++){
                     bestCar = getBestCar(Places.get(i),indexOfFcy, t,numberDay);
@@ -214,19 +213,17 @@ public class GarbageOptimizer {
                 if (bestCar==null){
                     break;
                 }
-
                 addRowInMatrix(CurrentDayContainers.get(indexOfFcy).getCoordinates());
+                if(CurrentDayContainers.size()>DistanceMatrix.get(0).size()){
+                    System.out.println();
+                }
 
                 servicingContainer(bestCar,indexOfFcy);
-
                 DistanceMatrix.remove(DistanceMatrix.size()-1);
-
-//                writeContainersToCsv(bestCar, numberDay);
 
             }
             System.out.println("Group is left");
         }
-//        DistanceMatrix.remove(DistanceMatrix.size()-1);
         LOGGER.log(Level.INFO,"~~~~~~~~~~~~~Car is left~~~~~~~~~~~~~~");
         clearCar();
     }
@@ -250,24 +247,20 @@ public class GarbageOptimizer {
         }
         return maxRadius;
     }
-    private void removeTemporaryOF(Car car, int index){
-        for(int i = 1;i<=car.getServicesContainers().size();i++){
-            DistanceMatrix.remove(DistanceMatrix.size()-i);
-        }
-    }
 
     private void removeTemporaryOT(int index){
         for (List<Double> list: DistanceMatrix){
             list.remove(index);
         }
         CurrentDayContainers.remove(index);
+
     }
 
     private boolean checkCarCapacity(Car bestCar, int index){
         return bestCar.getFreeVolume() >= CurrentDayContainers.get(index).getAllVolume()/bestCar.getCompactionRatio();
     }
     private boolean checkWorkingTime(Car bestCar){
-        return bestCar.getTimeInWork()<=15;
+        return bestCar.getTimeInWork()<=20;
     }
 
     /**
@@ -294,7 +287,10 @@ public class GarbageOptimizer {
         double tmpMinM = Double.MAX_VALUE;
         double distance;
         Car bestCar = null;
-        bestCar = getBestCarWithRadius(optimalGarages, indexOfFcy, typeOfGrab, 1);
+        bestCar = getPreviousCar(optimalGarages, indexOfFcy);
+        if(bestCar == null){
+            bestCar = getBestCarWithRadius(optimalGarages, indexOfFcy, typeOfGrab, 1);
+        }
         if(bestCar == null){
             bestCar = getBestCarWithRadius(optimalGarages, indexOfFcy, typeOfGrab, 1.1);
         }
@@ -305,6 +301,30 @@ public class GarbageOptimizer {
             bestCar =  getBestCarOfWorst(optimalGarages, indexOfFcy, typeOfGrab);
         }
 
+        return bestCar;
+    }
+
+    private Car getPreviousCar(Place optimalGarages, int indexOfFcy){
+
+        double tmpMinM = Double.MAX_VALUE;
+        double distance;
+        Car bestCar = null;
+        for (Car car: optimalGarages.getCars()) {
+            for (Container container: car.getServicesContainers()){
+                if(container.getAddress().equals(CurrentDayContainers.get(indexOfFcy).getAddress())){
+                    if (checkCarCapacity(car, indexOfFcy)
+                            & !car.isInWork()
+                            & checkWorkingTime(car)){
+                        if (car.getM3() < tmpMinM) {
+                            bestCar = car;
+                            tmpMinM = bestCar.getM3();
+                        }
+                    }
+
+                }
+
+            }
+        }
         return bestCar;
     }
     private Car getBestCarOfWorst(Place optimalGarages, int indexOfFcy, double typeOfGrab){
@@ -332,7 +352,6 @@ public class GarbageOptimizer {
         }
         return bestCar;
     }
-
 
     private Car getBestCarZeroCentroid(Place optimalGarages, int indexOfFcy, double typeOfGrab){
         double tmpMinM = Double.MAX_VALUE;
@@ -420,6 +439,7 @@ public class GarbageOptimizer {
     }
     private void checkProximityToCentroid(int bestPolygonIndex, Car bestCar){
         //TODO Найти ближайшие КП по близости центроиды
+        // Можно использовать для дозагрузки
         Polygon polygon = Polygons.get(bestPolygonIndex);
         Container lastServiceContainer = bestCar.getServicesContainers().get(bestCar.getServicesContainers().size()-1);
         for (Coordinates coordinate: getCheckpoints(lastServiceContainer.getCoordinates(),polygon.getCoordinates())){
@@ -452,7 +472,7 @@ public class GarbageOptimizer {
 
     private void servicingContainer(Car car, int indexOfFcy) throws IOException {
         if(CurrentDayContainers.size()>0){
-            if(checkWorkingTime(car)){ //checkWorkingTime(car)
+            if(checkWorkingTime(car)){
                 if(checkCarCapacity(car,indexOfFcy)){
                     LOGGER.log(Level.INFO,"~~~~~~~~~~~~~servicingContainer~~~~~~~~~~~~~~");
                     int garageIndex = 0;
@@ -465,7 +485,6 @@ public class GarbageOptimizer {
                     {
                         garageIndex = DistanceMatrix.size()-1;
                     }
-
                     LOGGER.log(Level.INFO,"Самая удаленная КП: " + CurrentDayContainers.get(indexOfFcy).getAddress());
                     LOGGER.log(Level.INFO,"Тип крепления КП: " + CurrentDayContainers.get(indexOfFcy).getTypeOfGrap());
                     Container container = CurrentDayContainers.get(indexOfFcy);
@@ -473,11 +492,14 @@ public class GarbageOptimizer {
                     LOGGER.log(Level.INFO,"Машина: "+ car.getNumber());
                     LOGGER.log(Level.INFO,"Тип захвата машины: "+ car.getTypeOfGrab());
                     LOGGER.log(Level.INFO,"Время в работе ДО: "+ car.getTimeInWork());
+                    container.setIsCater(true);
                     container.setCarNumber(car.getNumber());
 
-                    car.setServicesContainers(container);
-                    container.setIsCater(true);
-
+                    try {
+                        car.setServicesContainers((Container)container.clone());
+                    } catch (CloneNotSupportedException e) {
+                        throw new RuntimeException(e);
+                    }
 
                     Double distance = DistanceMatrix.get(garageIndex).get(indexOfFcy);
                     calculateMMetrix(car, distance);
@@ -559,17 +581,6 @@ public class GarbageOptimizer {
             arr.add(current);
         }
         Collections.sort(Places);
-
-//        sort(arr, 0, arr.size()-1);
-//        for (int i=0;i<3;i++){
-//            for (int j = 0; j<DistanceMatrix.size();j++) {
-//                double current = DistanceMatrix.get(j).get(fcy);
-//                if (arr.get(i) == current){
-//                    optimalPlace.add(places.get(i));
-//                }
-//            }
-//        }
-
         return Places;
     }
 
@@ -599,11 +610,6 @@ public class GarbageOptimizer {
         return i+1;
     }
 
-
-    /* The main function that implements QuickSort()
-      arr[] --> Array to be sorted,
-      low  --> Starting index,
-      high  --> Ending index */
     void sort(List<Double> arr, int low, int high)
     {
         if (low < high)
@@ -653,10 +659,6 @@ public class GarbageOptimizer {
 
         array.indexOf(Collections.max(array));
         int largest = array.indexOf(Collections.max(array));
-//        for ( int i = 1; i < array.size(); i++ )
-//        {
-//            if ( array.get(i) > array.get(largest)) largest = i;
-//        }
         return largest;
     }
 

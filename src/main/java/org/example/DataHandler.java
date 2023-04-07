@@ -14,21 +14,20 @@ import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+
 /**
  * <h1>Класс для работы с данными</h1>
  * Данный класс содержит поля и методы, позволяющие обрабатывать входные данные.
  * На текущий момент возможно считывать данные из Excel, строго определенной структуры.
- * Описание необходимой структуры описывается в каждом методе отдельно.
+ * Необходимая структура описывается в каждом методе отдельно.
  * @author  Головань Кирилл
  * @version 1.0
  * @since   2022-12-25
  */
 public class DataHandler {
-
     // Поля для создания объекта ридера Excel файлов
     private FileInputStream fis;
     private XSSFWorkbook workbook;
-
 
     /**
      * Метод предназначенный для инициализации объекта, необходимого для чтения файлов.
@@ -48,41 +47,50 @@ public class DataHandler {
     }
 
     /**
-     * Метод предназначенный для получения информации о всех гаражах.
+     * Метод для получения информации обо всех гаражах из файла Excel.
+     *
      * Требования к обрабатываемому документу:
-     * <ol>
-     *     <li>Остутствие заглавия документа (чтение начинается с ячейки A1)</li>
-     *     <li>Столбец с индексом indexAddress - адрес гаража</li>
-     *     <li>Столбец с индексом indexLat - широта гаража</li>
-     *     <li>Столбец с индексом indexLon - долгота гаража</li>
-     *     <li>Столбец с индексом indexGarageID - Идентификатор гаража</li>
-     * </ol>
-     * @return Список объектов типа Place
-     * @throws IOException Ошибки возникшие при чтении файла
+     * - Отсутствие заголовка документа (чтение начинается с ячейки A1)
+     * - Столбец с индексом indexAddress содержит адрес гаража
+     * - Столбец с индексом indexLat содержит широту гаража
+     * - Столбец с индексом indexLon содержит долготу гаража
+     * - Столбец с индексом indexGarageID содержит идентификатор гаража
+     *
+     * @return Список объектов типа Place, содержащий информацию обо всех гаражах из файла Excel
+     * @throws IOException Ошибка, возникшая при чтении файла Excel
      */
     private List<Place> getGarage() throws IOException {
         // Получаем первый лист Excel файла
         XSSFSheet sheet = createExcelHandler(Storage.Garage);
+
         List<Place> places = new ArrayList<>();
         String rowStr = "";
         int idd = 0;
         for (Row row : sheet) {
             rowStr = iterateRow(row);
+
+            // Задаем индексы для столбцов, содержащих адрес, широту, долготу и идентификатор гаража
             int indexLat = 2;
             int indexLon = 3;
             int indexAddress = 1;
             int indexGarageID = 0;
 
+            // Получаем значения из строки
             double lat = Double.parseDouble(rowStr.split("~")[indexLat]);
             double lon = Double.parseDouble(rowStr.split("~")[indexLon]);
             double index = Double.parseDouble(rowStr.split("~")[indexGarageID]);
             String address = rowStr.split("~")[indexAddress];
+
             Coordinates<Double, Double> coord = new Coordinates<>(lat, lon);
-            if(index == 6 || index == 5 || index == 0){
+
+            // Если идентификатор гаража равен 6, 5 или 0, добавляем информацию о гараже в список
+            if (index == 6 || index == 5 || index == 0) {
                 places.add(new Place(idd, address, coord, index));
                 idd++;
             }
         }
+
+        // Закрываем потоки
         workbook.close();
         fis.close();
 
@@ -90,25 +98,35 @@ public class DataHandler {
     }
 
     /**
-     * Метод предназначенный для наполнения гаражей информацией об находящихся в них машинах.
-     * @return Список объектов типа Place
-     * @throws IOException Ошибки возникшие при чтении файла
+     * Метод fillGarage() предназначен для наполнения гаражей информацией об находящихся в них машинах.
+     *
+     * @return Список объектов типа Place, содержащий информацию о гаражах с машинами.
+     * @throws IOException Ошибки, которые могут возникнуть при чтении файла.
      */
     public List<Place> fillGarage() throws IOException {
+        // Получаем список всех гаражей.
         List<Place> places = getGarage();
+        // Получаем список всех машин.
         List<Car> cars = getCars();
-
-        for(Place place : places) {
+        // Проходим по каждому гаражу.
+        for (Place place : places) {
+            // Создаем временный список машин, которые находятся в этом гараже.
             List<Car> tmpCars = new ArrayList<>();
+            // Проходим по каждой машине.
             for (Car car : cars) {
-                if (place.getGarageIndex()==car.getGarageId()){
+                // Если машина находится в этом гараже.
+                if (place.getGarageIndex() == car.getGarageId()) {
+                    // Устанавливаем координаты гаража для этой машины.
                     car.setCoordinates(place.getCoordinates());
+                    // Добавляем машину во временный список.
                     tmpCars.add(car);
                 }
             }
+            // Устанавливаем список машин для этого гаража.
             place.setCars(tmpCars);
         }
 
+        // Возвращаем список всех гаражей с машинами.
         return places;
     }
 
@@ -116,12 +134,15 @@ public class DataHandler {
      * Метод предназначенный для получения информации о всех контейнерах.
      * Требования к обрабатываемому документу:
      * <ol>
-     *     <li>Остутствие заглавия документа (чтение начинается с ячейки A1)</li>
+     *     <li>Отсутствие заглавия документа (чтение начинается с ячейки A1)</li>
+     *     <li>Столбец с индексом indexCityName - город нахождения КП</li>
      *     <li>Столбец с индексом indexAddress - адрес контейнера</li>
      *     <li>Столбец с индексом indexLat - широта контейнера</li>
      *     <li>Столбец с индексом indexLon - долгота контейнера</li>
      *     <li>Столбец с индексом indexCount - количество контейнеров</li>
      *     <li>Столбец с индексом indexVolume - объем контейнера</li>
+     *     <li>Столбец с индексом indexSchedule - график вывоза КП</li>
+     *     <li>Столбец с индексом indexTypeOfGrub - тип захвата</li>
      * </ol>
      * @return Список объектов типа Containers
      * @throws IOException Ошибки возникшие при чтении файла
@@ -158,11 +179,6 @@ public class DataHandler {
                 double grubType = Double.parseDouble(rowStr.split("~")[indexTypeOfGrub]);
                 nextM = getNextMonth(new Date());
 
-
-//            System.out.println(String.format("size= %s;data= %s;", containers.size()+1, nextM.getTime()));
-                if(address.equals("Ангарск, ул. Садовая, напротив участка 2а")){
-                    System.out.println();
-                }
                 byte[] hotPointSchedule = parseSchedule(schedule,nextM);
                 if(city.toLowerCase().contains("ангар") & volume!=0 & hotPointSchedule[numberDay] == 1){
                     containers.add(new Container(address, coord,volume,(int)count,hotPointSchedule,grubType));
@@ -308,7 +324,6 @@ public class DataHandler {
 
         byte[] oneHot = new byte[countDays];
         for(String day: newSchedulePart){
-//            System.out.println("day:"+day+".");
             nextMonth = getNextMonth(new Date());
             int numOfDay = tryParseInt(day);
             List<String> combineDay = new ArrayList<String>(Arrays.asList(day.split(" ")));;
@@ -349,22 +364,26 @@ public class DataHandler {
     }
 
     /**
-     * Метод предназначенный для получения следующего месяца
-     * @param date Текущая дата
-     * @return Дата первое число следующего месяца
+     * This method returns the next month's first day from a given date.
+     *
+     * @param date The date to get the next month from.
+     * @return The first day of the next month.
      */
     public static Calendar getNextMonth(Date date) {
+        // Create a new Calendar instance and set it to the provided date
         Calendar calendar = Calendar.getInstance();
         calendar.setTime(date);
-
+        // If the current month is December, set the next month to January of the next year
         if (calendar.get(Calendar.MONTH) == Calendar.DECEMBER) {
             calendar.set(Calendar.MONTH, Calendar.JANUARY);
             calendar.set(Calendar.YEAR, calendar.get(Calendar.YEAR) + 1);
         } else {
+            // Otherwise, roll the calendar to the next month
             calendar.roll(Calendar.MONTH, true);
         }
 
-        calendar.add(Calendar.DATE, -(int)calendar.getTime().getDate()+1);
+        // Set the day of the month to the first day of the next month
+        calendar.set(Calendar.DAY_OF_MONTH, 1);
         return calendar;
     }
 
@@ -425,16 +444,23 @@ public class DataHandler {
 
         return cars;
     }
+
+    /**
+     Метод создания CSV-файла на основе списка строк.
+     @param args Список строк, содержащих данные для записи в CSV-файл
+     @throws IOException Ошибки возникшие при записи в файл
+     */
     public static void create_csv(List<String> args) throws IOException {
+        // Указываем имя файла и разделитель столбцов
         String filename = "example.csv";
         String delimiter = ",";
+        // Задаем заголовок для CSV-файла
         String[] header = {"Lat", "Lon", "Descr", "Sub", "Num"};
 
         try (FileOutputStream fos = new FileOutputStream(new File(filename), true);
-             OutputStreamWriter osw = new OutputStreamWriter(fos, StandardCharsets.UTF_8);
-             BufferedWriter writer = new BufferedWriter(osw)) {
-            // Check if file is empty, if yes, write header row
-
+            OutputStreamWriter osw = new OutputStreamWriter(fos, StandardCharsets.UTF_8);
+            BufferedWriter writer = new BufferedWriter(osw)) {
+            // Проверяем, пустой ли файл. Если да, записываем заголовок
             if (fos.getChannel().size() == 0) {
                 for (int i = 0; i < header.length; i++) {
                     writer.append(header[i]);
@@ -444,8 +470,8 @@ public class DataHandler {
                 }
                 writer.append("\n");
             }
-            for (String row: args)
-            {
+            // Записываем данные из списка в CSV-файл
+            for (String row: args) {
                 String[] splitedRow = row.split(",");
                 writer.append(splitedRow[0]+ delimiter);
                 writer.append(splitedRow[1]+delimiter);
@@ -454,9 +480,6 @@ public class DataHandler {
                 writer.append(splitedRow[4]);
                 writer.append("\n");
             }
-
-
-            System.out.println("CSV file created successfully.");
         } catch (IOException e) {
             e.printStackTrace();
         }
