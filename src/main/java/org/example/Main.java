@@ -37,39 +37,46 @@ public class Main
 
             }
 
-            List<String> res = new ArrayList<>();
+            List<String> resRow = new ArrayList<>();
+            List<String> resData = new ArrayList<>();
             try (FileWriter writer = new FileWriter("data.csv", StandardCharsets.UTF_8)) {
-                writer.append("Address (Place);Number (Car);TypeOfGrab (Car);Address (Container);Coordinates (Container);TypeOfGrab (Container);Centroid;Sch\n");
+                writer.append("Address (Place);Number (Car);TypeOfGrab (Car);Address (Container);Coordinates (Container);TypeOfGrab (Container);Centroid;Sch; CNT\n");
                 for (Place place : go.getPlaces()) {
                     for (Car car : place.getCars()) {
+                        int cnt = 0;
                         for (Container container : car.getServicesContainers()) {
                             StringBuilder sb = new StringBuilder();
                             for (int i = 0; i < container.getSchedule().length; i++) {
                                 if (container.getSchedule()[i] == 1) {
                                     if (sb.length() > 0) {
-                                        sb.append(";");
+                                        sb.append("|");
                                     }
                                     sb.append(i+1);
                                 }
                             }
 
                             String data = place.getAddress() + ";" + car.getNumber() + ";" + car.getTypeOfGrab() + ";"
-                                    + container.getAddress() + ";" + container.getCoordinates().getLatitude()+"|"+container.getCoordinates().getLongitude() + ";"
-                                    + container.getTypeOfGrap() + ";" + car.getCentroid().getLatitude()+"|"+car.getCentroid().getLongitude() +";"+ sb + "\n";
+                                    + container.getAddress().replaceAll(",", " ") + ";" + container.getCoordinates().getLatitude()+"|"+container.getCoordinates().getLongitude() + ";"
+                                    + container.getTypeOfGrab() + ";" + car.getCentroid().getLatitude()+"|"+car.getCentroid().getLongitude() +";"+ sb;
 
-                            String row = container.getCoordinates().getLatitude()+","+container.getCoordinates().getLongitude()+","+place.getAddress() + ";" + car.getNumber() + ";" + car.getTypeOfGrab() + ";"
-                                    + container.getAddress().replaceAll(",", " ") + ","+ sb+ ","+0;
+                            String row = container.getCoordinates().getLatitude()+","+container.getCoordinates().getLongitude()+","+place.getAddress() + "|" + car.getNumber() + "|" + car.getTypeOfGrab() + "|"
+                                    + container.getAddress().replaceAll(",", " ") + ","+ sb+ ","+cnt;
 
-                            writer.append(data);
+                            if (!resData.contains(data)) {
+                                cnt ++;
+                                resData.add(data);
+                                data +=  ";" + cnt + "\n";
+                                writer.append(data);
+                            }
 
-                            if(!res.contains(row)) {
-                                res.add(row);
+                            if(!resRow.contains(row)) {
+                                resRow.add(row);
 
                             }
                         }
                     }
                 }
-                DataHandler.create_csv(res);
+                DataHandler.create_csv(resRow);
                 System.out.println("Data written to CSV successfully");
             } catch (IOException e) {
                 e.printStackTrace();

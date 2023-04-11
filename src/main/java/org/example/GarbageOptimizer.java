@@ -32,7 +32,6 @@ public class GarbageOptimizer {
     }
     private List<Place> Places; // список гаражей
     private List<Container> AllContainers; // Список всех контейнеров
-//    private List<Container> ContainersByGrabType; //
     private List<Container> CurrentDayContainers; // Список контейнеров
     private List<List<Double>> DistanceMatrix; // Матрица расстояний
     private List<Container> AllServiceCont;
@@ -42,7 +41,6 @@ public class GarbageOptimizer {
         CurrentDayContainers = new ArrayList<>();
         AllServiceCont = new ArrayList<>();
         Polygons = new DataHandler().getPolygons();
-//        writeCurrentToCsv();
     }
 
     public List<Place> getPlaces() {
@@ -68,37 +66,53 @@ public class GarbageOptimizer {
     }
 
     /**
-     * Метод предназначенный для создания матрицы расстояний.
-     * @exception IOException Ошибки возникшие при чтении файла
-     * @return List < List < Double >> - матрица расстояний.
+     * Создает матрицу расстояний между гаражами и контейнерами на указанный день с указанным типом захвата.
+     *
+     * @param numberDay номер дня
+     * @param typeOfGrab тип захвата контейнера
+     * @return матрица расстояний
+     * @throws IOException если возникла ошибка ввода-вывода
      */
-    public List<List<Double>> createDistanceMatrix(int numberDay,double typeOfGrab) throws IOException {
-        LOGGER.log(Level.INFO,"Номер дня "+ numberDay);
+    public List<List<Double>> createDistanceMatrix(int numberDay, double typeOfGrab) throws IOException {
+        // Логируем номер дня.
+        LOGGER.log(Level.INFO, "Номер дня " + numberDay);
+        // Создаем обработчик данных.
         DataHandler dh = new DataHandler();
-        if (Places == null){
+        // Если список гаражей пуст, заполняем его данными.
+        if (Places == null) {
             Places = dh.fillGarage();
         }
+        // Получаем список контейнеров на определенный день.
         AllContainers = dh.getContainers(numberDay);
+        // Создаем пустую матрицу расстояний.
         List<List<Double>> distanceMatrix = new ArrayList<>();
+        // Проходим по списку гаражей.
         for (Place place : Places) {
+            // Создаем пустой список расстояний до контейнеров для текущего гаража.
             List<Double> row = new ArrayList<>();
-
+            // Проходим по списку контейнеров на определенный день.
             for (Container container : AllContainers) {
-                if(container.getSchedule()[numberDay] == 1 & container.getTypeOfGrap() == typeOfGrab){
-
-                    double distance =  calculateDistance(place.getCoordinates(),container.getCoordinates());//in meters
+                // Проверяем, что контейнер работает в определенный день и имеет определенный тип захвата.
+                if (container.getSchedule()[numberDay] == 1 & container.getTypeOfGrab() == typeOfGrab) {
+                    // Вычисляем расстояние между гаражом и контейнером в метрах.
+                    double distance = calculateDistance(place.getCoordinates(), container.getCoordinates());
+                    // Добавляем расстояние в список для текущего гаража.
                     row.add(distance);
+                    // Если контейнер еще не добавлен в список контейнеров для текущего дня, добавляем его.
                     if (!CurrentDayContainers.contains(container)) CurrentDayContainers.add(container);
                 }
             }
+            // Добавляем список расстояний для текущего гаража в матрицу расстояний.
             distanceMatrix.add(row);
         }
+        // Сохраняем созданную матрицу расстояний в поле класса DistanceMatrix.
         DistanceMatrix = distanceMatrix;
+        // Возвращаем созданную матрицу расстояний.
         return distanceMatrix;
     }
 
     /**
-     * Метод предназначенный для рассчета расстония между двумя точками.
+     * Метод предназначенный для расчета расстояния между двумя точками.
      * @param from Исходная точка
      * @param to Конечная точка
      * @return  Double - расстояниме между точками.
@@ -132,19 +146,6 @@ public class GarbageOptimizer {
         return sumDistance;
     }
 
-    private void writeGaragesToCsv() throws IOException {
-        List<String> toCsv = new ArrayList<>();
-        int cnt = 1;
-        for(Place place : Places){
-
-            String row = place.getCoordinates().getLatitude()+","+ place.getCoordinates().getLongitude()+","+"Place,"+ place.getAddress().replaceAll(",","~")+","+cnt;
-            cnt++;
-            toCsv.add(row);
-
-        }
-        create_csv(toCsv);
-    }
-
     private void writeContainersToCsv(Car bestCar, int numberOfDay) throws IOException {
         int garageIndex = 0;
         for (Place place : Places){
@@ -168,8 +169,8 @@ public class GarbageOptimizer {
         create_csv(toCsv);
     }
 
-    private void servicePreviousCont(int day){
-        List<Container> contTmp =  new ArrayList(CurrentDayContainers);;
+    private void servicePreviousCont(int day) throws IOException {
+        List<Container> contTmp =  new ArrayList(CurrentDayContainers);
         for(Place place:Places){
             for(Car car: place.getCars()){
                 for(Container cont: car.getServicesContainers()){
@@ -177,6 +178,47 @@ public class GarbageOptimizer {
                         if(cont.getAddress().equals(currentCont.getAddress()) & cont.getSchedule()[day]==1){
                             int index = CurrentDayContainers.indexOf(currentCont);
                             if(index != -1){
+                                int garageIndex = 0;
+                                if (car.getGarageId() == place.getGarageIndex()) {
+                                    garageIndex = (int) place.getId();
+                                }
+
+                                if (garageIndex == -1)
+                                {
+                                    garageIndex = DistanceMatrix.size()-1;
+                                }
+                                Double distance = DistanceMatrix.get(garageIndex).get(index);
+                                calculateMMetrix(car, distance);
+                                calculateWorkingTime(car, distance, Math.ceil(currentCont.getAllVolume()));
+                                LOGGER.log(Level.INFO,"Время в работе ПОСЛЕ: "+ car.getTimeInWork());
+                                double longCentroid = 0;
+                                double latCentroid = 0;
+                                for (Container serviceCont: car.getServicesContainers()){
+                                    longCentroid += serviceCont.getCoordinates().getLongitude();
+                                    latCentroid += serviceCont.getCoordinates().getLatitude();
+                                }
+                                Coordinates<Double, Double> centroid = new Coordinates<>(
+                                        latCentroid/car.getServicesContainers().size(),
+                                        longCentroid/car.getServicesContainers().size()
+
+                                );
+
+                                LOGGER.log(Level.INFO,"Объем машины ДО: " + car.getFreeVolume());
+
+                                LOGGER.log(Level.INFO,"Объем контейнера: " + currentCont.getAllVolume());
+                                if (car.getCompactionRatio() != 0){
+                                    car.setFreeVolume(car.getFreeVolume()-currentCont.getAllVolume()/car.getCompactionRatio());
+                                }else{
+                                    car.setFreeVolume(car.getFreeVolume()-currentCont.getAllVolume());
+                                }
+                                LOGGER.log(Level.INFO,"Объем машины ПОСЛЕ: " + car.getFreeVolume());
+                                LOGGER.log(Level.INFO,"Кол-во КП: "+ car.getServicesContainers().size());
+                                LOGGER.log(Level.INFO,"Dist: "+ distance);
+                                LOGGER.log(Level.INFO, Place.getPlaceById(garageIndex, Places).getCoordinates().getLatitude() +"," + Place.getPlaceById(garageIndex, Places).getCoordinates().getLongitude());
+                                LOGGER.log(Level.INFO, CurrentDayContainers.get(index).getCoordinates().getLatitude() +"," + CurrentDayContainers.get(index).getCoordinates().getLongitude());
+                                car.setCentroid(centroid);
+                                car.setMaxRadiusAroundCentroid(getMaxRadius(car));
+                                car.setInWork(true);
                                 removeTemporaryOT(index);
                                 AllServiceCont.add(currentCont);
                             }
@@ -198,8 +240,8 @@ public class GarbageOptimizer {
             createDistanceMatrix(numberDay, t);
 
             servicePreviousCont(numberDay);
-            while (CurrentDayContainers.size()!=0){
 
+            while (CurrentDayContainers.size()!=0){
                 int indexOfFcy = getIndexOfLargest(sumDistance());
                 if (CurrentDayContainers.get(indexOfFcy).getIsCater()) continue;
                 Places = getOptimalCarPlace(indexOfFcy);
@@ -486,7 +528,7 @@ public class GarbageOptimizer {
                         garageIndex = DistanceMatrix.size()-1;
                     }
                     LOGGER.log(Level.INFO,"Самая удаленная КП: " + CurrentDayContainers.get(indexOfFcy).getAddress());
-                    LOGGER.log(Level.INFO,"Тип крепления КП: " + CurrentDayContainers.get(indexOfFcy).getTypeOfGrap());
+                    LOGGER.log(Level.INFO,"Тип крепления КП: " + CurrentDayContainers.get(indexOfFcy).getTypeOfGrab());
                     Container container = CurrentDayContainers.get(indexOfFcy);
                     LOGGER.log(Level.INFO,"Гараж: "+ car.getGarageId()+"; "+ Place.getPlaceById(garageIndex, Places).getAddress());
                     LOGGER.log(Level.INFO,"Машина: "+ car.getNumber());

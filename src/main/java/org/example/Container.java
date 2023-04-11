@@ -63,7 +63,7 @@ public class Container implements Cloneable {
         return IsCater;
     }
 
-    public double getTypeOfGrap() {
+    public double getTypeOfGrab() {
         return TypeOfGrap;
     }
 

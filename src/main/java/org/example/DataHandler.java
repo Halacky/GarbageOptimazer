@@ -7,9 +7,11 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
@@ -193,30 +195,49 @@ public class DataHandler {
         return containers;
     }
 
+    /**
+     * Получает список полигонов из Excel-файла
+     *
+     * @return Список полигонов
+     * @throws IOException Если возникли проблемы с чтением файла
+     */
     protected List<Polygon> getPolygons() throws IOException {
         // Получаем первый лист Excel файла
         XSSFSheet sheet = createExcelHandler(Storage.Polygons);
+
         List<Polygon> polygons = new ArrayList<>();
         String rowStr = "";
+
+        // Итерируемся по каждой строке в листе
         for (Row row : sheet) {
+            // Получаем строку в виде строки "~"-разделителей
             rowStr = iterateRow(row);
+
+            // Получаем индексы нужных колонок
             int indexLat = 2;
             int indexLon = 3;
             int indexAddress = 1;
             int indexGarageID = 0;
 
+            // Извлекаем значения из строки
             double lat = Double.parseDouble(rowStr.split("~")[indexLat]);
             double lon = Double.parseDouble(rowStr.split("~")[indexLon]);
             double id = Double.parseDouble(rowStr.split("~")[indexGarageID]);
             String address = rowStr.split("~")[indexAddress];
+
+            // Создаем объект координат и полигон, добавляем его в список
             Coordinates<Double, Double> coord = new Coordinates<>(lat, lon);
             polygons.add(new Polygon((int)id, address, coord));
         }
+
+        // Закрываем Excel-файл и поток чтения
         workbook.close();
         fis.close();
 
+        // Возвращаем список полигонов
         return polygons;
     }
+
 
     /**
      * Метод предназначенный для преобразования текста в число, если это возможно.
@@ -269,7 +290,7 @@ public class DataHandler {
      * @param nextMonth Объект следуюшего месяца
      * @return Индекс дня месяца, в который необходимо осуществить вывоз
      */
-    private int createOneHot(List<String> combineDay,  Calendar nextMonth, int cnt){
+    private int getDayOfMonthForOccurrence (List<String> combineDay, Calendar nextMonth, int cnt){
         int numDay = 0;
         if (combineDay.contains("Каждый")) {
             numDay = getNumberDayOnWeek(combineDay.get(2));
@@ -280,13 +301,12 @@ public class DataHandler {
         int count = 0;
         int oneHotIndex = 0;
         Date currentDate;
+        // проходим по всем дням месяца и ищем день недели, который встречается cnt раз
         for(int i = 0; i<=countDays;i++) {
             currentDate = nextMonth.getTime();
-
             if (numDay == currentDate.getDay()) {
                 count++;
                 nextMonth.add(Calendar.DATE, 1);
-
             } else {
                 nextMonth.add(Calendar.DATE, 1);
             }
@@ -295,6 +315,7 @@ public class DataHandler {
                 break;
             }
         }
+        // возвращаем индекс в one-hot представлении
         nextMonth.add(Calendar.DATE, -(oneHotIndex));
         return oneHotIndex;
     }
@@ -311,54 +332,53 @@ public class DataHandler {
      * @param nextMonth Объект следуюшего месяца
      * @return byte[] - One hot представление
      */
-    private byte[] parseSchedule(String schedule, Calendar nextMonth){
+    private byte[] parseSchedule(String schedule, Calendar nextMonth) {
         int countDays = nextMonth.getActualMaximum(Calendar.DAY_OF_MONTH);
 
         String[] partOfSchedule = schedule.split(",");
-        List<String> newSchedulePart = new ArrayList<>();
-        for (String str : partOfSchedule) {
-            str = str.trim();
-            newSchedulePart.add(str);
-        }
-        newSchedulePart.removeIf(String::isEmpty);
+        List<String> newSchedulePart = Arrays.stream(partOfSchedule)
+                .map(StringUtils::trimToNull)
+                .filter(Objects::nonNull)
+                .toList();
 
         byte[] oneHot = new byte[countDays];
-        for(String day: newSchedulePart){
+        for (String day : newSchedulePart) {
             nextMonth = getNextMonth(new Date());
+
             int numOfDay = tryParseInt(day);
-            List<String> combineDay = new ArrayList<String>(Arrays.asList(day.split(" ")));;
+            List<String> combineDay = new ArrayList<String>(Arrays.asList(day.split(" ")));
             combineDay.removeAll(Arrays.asList("", null));
-            if(numOfDay != 0 & numOfDay<=countDays){
-                oneHot[numOfDay-1] = 1;
-            }else if(day.toLowerCase().contains("ежед") | newSchedulePart.size() == 7){
-                Arrays.fill(oneHot, (byte)1);
-            }
-            else if(combineDay.size()==1) {
+
+            if (numOfDay > 0 && numOfDay <= countDays) {
+                oneHot[numOfDay - 1] = 1;
+            } else if (day.toLowerCase().contains("ежед") || newSchedulePart.size() == 7) {
+                Arrays.fill(oneHot, (byte) 1);
+            } else if (combineDay.size() == 1) {
                 try {
                     int numberOfWeek = getNumberDayOnWeek(day);
-                    for(int i = 0; i<countDays;i++) {
+                    for (int i = 0; i < countDays; i++) {
                         Date currentDate = nextMonth.getTime();
                         if (numberOfWeek == currentDate.getDay()) {
                             oneHot[currentDate.getDate() - 1] = 1;
                         }
                         nextMonth.add(Calendar.DATE, 1);
                     }
-                    nextMonth.add(Calendar.DATE, -(nextMonth.getTime().getDate()-1));
+                    nextMonth.add(Calendar.DATE, -(nextMonth.getTime().getDate() - 1));
 
-                }catch (Exception e){
+                } catch (Exception e) {
                     System.out.println();
                 }
+            } else if (day.toLowerCase().contains("перв") || combineDay.get(1).contains("1")) {
+                oneHot[getDayOfMonthForOccurrence(combineDay, nextMonth, 1) - 1] = 1;
+            } else if (day.toLowerCase().contains("второ") || combineDay.get(1).contains("2")) {
+                oneHot[getDayOfMonthForOccurrence(combineDay, nextMonth, 2) - 1] = 1;
+            } else if (day.toLowerCase().contains("трет") || combineDay.get(1).contains("3")) {
+                oneHot[getDayOfMonthForOccurrence(combineDay, nextMonth, 3) - 1] = 1;
+            } else if (day.toLowerCase().contains("четверт") || combineDay.get(1).contains("4")) {
+                oneHot[getDayOfMonthForOccurrence(combineDay, nextMonth, 4) - 1] = 1;
+            } else if (day.toLowerCase().contains("заяв")) {
+                // do nothing
             }
-            else if (day.toLowerCase().contains("перв") | combineDay.get(1).contains("1")){
-                oneHot[createOneHot(combineDay,nextMonth,1) - 1] = 1;
-            } else if (day.toLowerCase().contains("второ")| combineDay.get(1).contains("2")) {
-                oneHot[createOneHot(combineDay,nextMonth,2) - 1] = 1;
-            } else if (day.toLowerCase().contains("трет") | combineDay.get(1).contains("3")) {
-                oneHot[createOneHot(combineDay,nextMonth,3) - 1] = 1;
-            }else if(day.toLowerCase().contains("четверт") | combineDay.get(1).contains("4")){
-                oneHot[createOneHot(combineDay,nextMonth,4) - 1] = 1;
-            }else if (day.toLowerCase().contains("заяв")) { }
-
         }
         return oneHot;
     }
