@@ -40,7 +40,7 @@ public class Main
             List<String> resRow = new ArrayList<>();
             List<String> resData = new ArrayList<>();
             try (FileWriter writer = new FileWriter("data.csv", StandardCharsets.UTF_8)) {
-                writer.append("Address (Place);Number (Car);TypeOfGrab (Car);Address (Container);Coordinates (Container);TypeOfGrab (Container);Centroid;Sch; CNT\n");
+                writer.append("Code;Address (Place);Number (Car);TypeOfGrab (Car);Address (Container);Value (Container);Coordinates (Container);TypeOfGrab (Container);Centroid;Sch; CNT\n");
                 for (Place place : go.getPlaces()) {
                     for (Car car : place.getCars()) {
                         int cnt = 0;
@@ -55,8 +55,8 @@ public class Main
                                 }
                             }
 
-                            String data = place.getAddress() + ";" + car.getNumber() + ";" + car.getTypeOfGrab() + ";"
-                                    + container.getAddress().replaceAll(",", " ") + ";" + container.getCoordinates().getLatitude()+"|"+container.getCoordinates().getLongitude() + ";"
+                            String data = container.getCode() + ";" + place.getAddress() + ";" + car.getNumber() + ";" + car.getTypeOfGrab() + ";"
+                                    + container.getAddress().replaceAll(",", " ") + ";" + container.getVolume() + ";"+ container.getCoordinates().getLatitude()+"|"+container.getCoordinates().getLongitude() + ";"
                                     + container.getTypeOfGrab() + ";" + car.getCentroid().getLatitude()+"|"+car.getCentroid().getLongitude() +";"+ sb;
 
                             String row = container.getCoordinates().getLatitude()+","+container.getCoordinates().getLongitude()+","+place.getAddress() + "|" + car.getNumber() + "|" + car.getTypeOfGrab() + "|"

@@ -7,8 +7,10 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-
+import java.util.Timer;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.lang3.StringUtils;
@@ -33,6 +35,7 @@ public class DataHandler {
 
     /**
      * Метод предназначенный для инициализации объекта, необходимого для чтения файлов.
+     *
      * @param path Параметр типа String. Хранит в себе путь до файла, с которым предстоит работать
      * @return Возвращает объект типа XSSFSheet, который хранит в себе первый лист Excel.
      * @throws IOException Ошибки возникшие при чтении файла
@@ -50,7 +53,7 @@ public class DataHandler {
 
     /**
      * Метод для получения информации обо всех гаражах из файла Excel.
-     *
+     * <p>
      * Требования к обрабатываемому документу:
      * - Отсутствие заголовка документа (чтение начинается с ячейки A1)
      * - Столбец с индексом indexAddress содержит адрес гаража
@@ -146,6 +149,7 @@ public class DataHandler {
      *     <li>Столбец с индексом indexSchedule - график вывоза КП</li>
      *     <li>Столбец с индексом indexTypeOfGrub - тип захвата</li>
      * </ol>
+     *
      * @return Список объектов типа Containers
      * @throws IOException Ошибки возникшие при чтении файла
      */
@@ -158,17 +162,18 @@ public class DataHandler {
         int countRows = 0;
         for (Row row : sheet) {
             if (countRows == 0) {
-                countRows ++;
-            }else{
+                countRows++;
+            } else {
                 rowStr = iterateRow(row);
                 int indexCityName = 0;
+                int indexCode = 2;
                 int indexAddress = 3;
                 int indexLat = 10;
                 int indexLon = 11;
                 int indexCount = 12;
                 int indexVolume = 13;
                 int indexSchedule = 14;
-                int indexTypeOfGrub = 21;
+                int indexTypeOfGrub = 22;
 
                 double lat = Double.parseDouble(rowStr.split("~")[indexLat]);
                 double lon = Double.parseDouble(rowStr.split("~")[indexLon]);
@@ -178,12 +183,13 @@ public class DataHandler {
                 Coordinates<Double, Double> coord = new Coordinates<>(lat, lon);
                 String schedule = rowStr.split("~")[indexSchedule];
                 String city = rowStr.split("~")[indexCityName];
+                String code = rowStr.split("~")[indexCode];
                 double grubType = Double.parseDouble(rowStr.split("~")[indexTypeOfGrub]);
                 nextM = getNextMonth(new Date());
 
-                byte[] hotPointSchedule = parseSchedule(schedule,nextM);
+                byte[] hotPointSchedule = parseSchedule(schedule, nextM);
                 if(city.toLowerCase().contains("ангар") & volume!=0 & hotPointSchedule[numberDay] == 1){
-                    containers.add(new Container(address, coord,volume,(int)count,hotPointSchedule,grubType));
+                    containers.add(new Container(code, address, coord,volume,(int)count,hotPointSchedule,grubType));
 
                 }
             }
@@ -227,7 +233,7 @@ public class DataHandler {
 
             // Создаем объект координат и полигон, добавляем его в список
             Coordinates<Double, Double> coord = new Coordinates<>(lat, lon);
-            polygons.add(new Polygon((int)id, address, coord));
+            polygons.add(new Polygon((int) id, address, coord));
         }
 
         // Закрываем Excel-файл и поток чтения
@@ -241,6 +247,7 @@ public class DataHandler {
 
     /**
      * Метод предназначенный для преобразования текста в число, если это возможно.
+     *
      * @param text Текст, который необходимо преобразовать в число
      * @return Число или 0
      */
@@ -254,47 +261,44 @@ public class DataHandler {
 
     /**
      * Метод предназначенный для получения номера дня недели
+     *
      * @param day Название дня недели
      * @return Порядковый номер дня недели
      */
-    private int getNumberDayOnWeek(String day){
+    private int getNumberDayOnWeek(String day) {
         int numDay = 0;
         day = day.toLowerCase();
-        if(day.contains("пон") || day.contains("пн")){
+        if (day.contains("пон") || day.contains("пн")) {
             numDay = 1;
-        }
-        else if(day.contains("втор") || day.contains("вт")){
+        } else if (day.contains("втор") || day.contains("вт")) {
             numDay = 2;
-        }
-        else if(day.contains("сред") || day.contains("ср")){
+        } else if (day.contains("сред") || day.contains("ср")) {
             numDay = 3;
-        }
-        else if(day.contains("чет") || day.contains("чт")){
+        } else if (day.contains("чет") || day.contains("чт")) {
             numDay = 4;
-        }
-        else if(day.contains("пят")|| day.contains("пт")){
+        } else if (day.contains("пят") || day.contains("пт")) {
             numDay = 5;
-        }
-        else if(day.contains("суб")|| day.contains("сб")){
+        } else if (day.contains("суб") || day.contains("сб")) {
             numDay = 6;
+        } else if (day.contains("вос") || day.contains("вс")) {
         }
-        else if(day.contains("вос")|| day.contains("вс")){}
         return numDay;
     }
 
     /**
      * Метод предназначенный для создания OneHot представления.
      * OneHot представление: массив состоящий из бинарных элементов, где 0 - отсутствие необходимости вывоза, 1 - необходимость вывоза.
-     * @param cnt Порядковый номер дня. Например, второй четверг месяца (cnt = 2)
+     *
+     * @param cnt        Порядковый номер дня. Например, второй четверг месяца (cnt = 2)
      * @param combineDay Массив слов комбинированного графика вывоза [второй, четверг, месяца]
-     * @param nextMonth Объект следуюшего месяца
+     * @param nextMonth  Объект следуюшего месяца
      * @return Индекс дня месяца, в который необходимо осуществить вывоз
      */
-    private int getDayOfMonthForOccurrence (List<String> combineDay, Calendar nextMonth, int cnt){
+    private int getDayOfMonthForOccurrence(List<String> combineDay, Calendar nextMonth, int cnt) {
         int numDay = 0;
         if (combineDay.contains("Каждый")) {
             numDay = getNumberDayOnWeek(combineDay.get(2));
-        }else {
+        } else {
             numDay = getNumberDayOnWeek(combineDay.get(1));
         }
         int countDays = nextMonth.getActualMaximum(Calendar.DAY_OF_MONTH);
@@ -302,7 +306,7 @@ public class DataHandler {
         int oneHotIndex = 0;
         Date currentDate;
         // проходим по всем дням месяца и ищем день недели, который встречается cnt раз
-        for(int i = 0; i<=countDays;i++) {
+        for (int i = 0; i <= countDays; i++) {
             currentDate = nextMonth.getTime();
             if (numDay == currentDate.getDay()) {
                 count++;
@@ -310,7 +314,7 @@ public class DataHandler {
             } else {
                 nextMonth.add(Calendar.DATE, 1);
             }
-            if (count==cnt){
+            if (count == cnt) {
                 oneHotIndex = currentDate.getDate();
                 break;
             }
@@ -320,6 +324,42 @@ public class DataHandler {
         return oneHotIndex;
     }
 
+    private List<String> getMatches(String input) {
+        input = input.replaceAll("-[а-яА-Я]", "");
+        input =  input.replaceAll(" ", "");
+        String[] daysOfWeek = {"понедельник", "вторник", "среда", "четверг", "пятница", "суббота", "воскресенье"};
+        List<String> res = new ArrayList<>();
+        while (!input.trim().isEmpty()) {
+            for (String dayOfWeek : daysOfWeek) {
+                int index = input.toLowerCase().indexOf(dayOfWeek);
+                if (index != -1) {
+                    String numbers = input.substring(0, index).trim();
+                    if (!numbers.isEmpty()) {
+                        String[] numberList = numbers.split(",");
+                        for (String number : numberList) {
+                            if(!number.equals("")){
+                                String row = number + ":" + dayOfWeek;
+//                                System.out.println(row);
+                                res.add(row);
+
+                            }
+                        }
+                    }
+                    input = input.substring(index + dayOfWeek.length()).trim();
+                    break;
+                }
+            }
+        }
+        return res;
+    }
+
+    private static List<String> formatNumbers(List<String> numbers, String day) {
+        List<String> result = new ArrayList<>();
+        for (String number : numbers) {
+            result.add(number + ":" + day);
+        }
+        return result;
+    }
     /**
      * Метод предназначенный для преобразования графика вывоза к единому виду.
      * Виды записи графика вывоза:
@@ -342,44 +382,71 @@ public class DataHandler {
                 .toList();
 
         byte[] oneHot = new byte[countDays];
-        for (String day : newSchedulePart) {
-            nextMonth = getNextMonth(new Date());
 
-            int numOfDay = tryParseInt(day);
-            List<String> combineDay = new ArrayList<String>(Arrays.asList(day.split(" ")));
-            combineDay.removeAll(Arrays.asList("", null));
+        if(schedule.contains("-")){
+            if(!(schedule.equals("Не определен") | schedule.equals("По запросу"))){
+                List<String> partSc  = getMatches(schedule);
+                for(String  sc: partSc){
+                    int cnt = Integer.parseInt(sc.split(":")[0]);
+                    oneHot[getDayOfMonthForOccurrence(List.of(sc.split(":")), nextMonth, cnt) - 1] = 1;
 
-            if (numOfDay > 0 && numOfDay <= countDays) {
-                oneHot[numOfDay - 1] = 1;
-            } else if (day.toLowerCase().contains("ежед") || newSchedulePart.size() == 7) {
-                Arrays.fill(oneHot, (byte) 1);
-            } else if (combineDay.size() == 1) {
-                try {
-                    int numberOfWeek = getNumberDayOnWeek(day);
-                    for (int i = 0; i < countDays; i++) {
-                        Date currentDate = nextMonth.getTime();
-                        if (numberOfWeek == currentDate.getDay()) {
-                            oneHot[currentDate.getDate() - 1] = 1;
-                        }
-                        nextMonth.add(Calendar.DATE, 1);
-                    }
-                    nextMonth.add(Calendar.DATE, -(nextMonth.getTime().getDate() - 1));
-
-                } catch (Exception e) {
-                    System.out.println();
                 }
-            } else if (day.toLowerCase().contains("перв") || combineDay.get(1).contains("1")) {
-                oneHot[getDayOfMonthForOccurrence(combineDay, nextMonth, 1) - 1] = 1;
-            } else if (day.toLowerCase().contains("второ") || combineDay.get(1).contains("2")) {
-                oneHot[getDayOfMonthForOccurrence(combineDay, nextMonth, 2) - 1] = 1;
-            } else if (day.toLowerCase().contains("трет") || combineDay.get(1).contains("3")) {
-                oneHot[getDayOfMonthForOccurrence(combineDay, nextMonth, 3) - 1] = 1;
-            } else if (day.toLowerCase().contains("четверт") || combineDay.get(1).contains("4")) {
-                oneHot[getDayOfMonthForOccurrence(combineDay, nextMonth, 4) - 1] = 1;
-            } else if (day.toLowerCase().contains("заяв")) {
-                // do nothing
+            }
+        }else{
+            for (String day : newSchedulePart) {
+                nextMonth = getNextMonth(new Date());
+                int numOfDay = tryParseInt(day);
+                if (numOfDay > 0 && numOfDay <= countDays) {
+                    oneHot[numOfDay - 1] = 1;
+                } else if (day.toLowerCase().contains("ежед") || newSchedulePart.size() == 7) {
+                    Arrays.fill(oneHot, (byte) 1);
+//            } else if (combineDay.size() == 1) {
+//                try {
+//                    int numberOfWeek = getNumberDayOnWeek(day);
+//                    for (int i = 0; i < countDays; i++) {
+//                        Date currentDate = nextMonth.getTime();
+//                        if (numberOfWeek == currentDate.getDay()) {
+//                            oneHot[currentDate.getDate() - 1] = 1;
+//                        }
+//                        nextMonth.add(Calendar.DATE, 1);
+//                    }
+//                    nextMonth.add(Calendar.DATE, -(nextMonth.getTime().getDate() - 1));
+//
+//                } catch (Exception e) {
+//                    System.out.println();
+//                }
+//            } else if (day.toLowerCase().contains("перв") || combineDay.get(1).contains("1")) {
+//                oneHot[getDayOfMonthForOccurrence(combineDay, nextMonth, 1) - 1] = 1;
+//            } else if (day.toLowerCase().contains("второ") || combineDay.get(1).contains("2")) {
+//                oneHot[getDayOfMonthForOccurrence(combineDay, nextMonth, 2) - 1] = 1;
+//            } else if (day.toLowerCase().contains("трет") || combineDay.get(1).contains("3")) {
+//                oneHot[getDayOfMonthForOccurrence(combineDay, nextMonth, 3) - 1] = 1;
+//            } else if (day.toLowerCase().contains("четверт") || combineDay.get(1).contains("4")) {
+//                oneHot[getDayOfMonthForOccurrence(combineDay, nextMonth, 4) - 1] = 1;
+//            } else if (day.toLowerCase().contains("заяв")) {
+//                // do nothing
+//            }
+                }else {
+
+                    try {
+                        int numberOfWeek = getNumberDayOnWeek(day);
+                        for (int i = 0; i < countDays; i++) {
+                            Date currentDate = nextMonth.getTime();
+                            if (numberOfWeek == currentDate.getDay()) {
+                                oneHot[currentDate.getDate() - 1] = 1;
+                            }
+                            nextMonth.add(Calendar.DATE, 1);
+                        }
+                        nextMonth.add(Calendar.DATE, -(nextMonth.getTime().getDate() - 1));
+
+                    } catch (Exception e) {
+                        System.out.println();
+                    }
+                }
             }
         }
+
+
         return oneHot;
     }
 

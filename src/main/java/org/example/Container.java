@@ -9,6 +9,7 @@ package org.example;
  */
 public class Container implements Cloneable {
     private String Address; // Адрес КП
+    private String Code;
     private Coordinates<Double, Double> Coordinates; // Коордианты КП
     private double TypeOfGrap; // Тип захвата
     private double Volume; // Объем КП
@@ -24,7 +25,7 @@ public class Container implements Cloneable {
      * @param volume Объем КП
      * @param count Кол-во КП
      */
-    public Container(String address, Coordinates<Double, Double> coordinates, double volume, int count,byte[] schedule, double grubType){
+    public Container(String code, String address, Coordinates<Double, Double> coordinates, double volume, int count,byte[] schedule, double grubType){
         Address = address;
         Coordinates = coordinates;
         Volume = volume;
@@ -34,6 +35,7 @@ public class Container implements Cloneable {
         CarNumber = null;
         Schedule = schedule;
         TypeOfGrap = grubType;
+        Code = code;
     }
     public Coordinates<Double, Double> getCoordinates() {
         return Coordinates;
@@ -74,5 +76,13 @@ public class Container implements Cloneable {
     @Override
     protected Object clone() throws CloneNotSupportedException {
         return super.clone();
+    }
+
+    public String getCode() {
+        return Code;
+    }
+
+    public double getVolume() {
+        return Volume;
     }
 }
