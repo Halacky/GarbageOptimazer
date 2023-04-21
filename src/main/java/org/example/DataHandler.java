@@ -55,7 +55,6 @@ public class DataHandler {
      * Метод для получения информации обо всех гаражах из файла Excel.
      * <p>
      * Требования к обрабатываемому документу:
-     * - Отсутствие заголовка документа (чтение начинается с ячейки A1)
      * - Столбец с индексом indexAddress содержит адрес гаража
      * - Столбец с индексом indexLat содержит широту гаража
      * - Столбец с индексом indexLon содержит долготу гаража
@@ -88,7 +87,7 @@ public class DataHandler {
 
             Coordinates<Double, Double> coord = new Coordinates<>(lat, lon);
 
-            // Если идентификатор гаража равен 6, 5 или 0, добавляем информацию о гараже в список
+            // Если гараж Иркутский или Ангарский, добавляем информацию о гараже в список
             if (index == 6 || index == 5 || index == 0) {
                 places.add(new Place(idd, address, coord, index));
                 idd++;
@@ -139,7 +138,7 @@ public class DataHandler {
      * Метод предназначенный для получения информации о всех контейнерах.
      * Требования к обрабатываемому документу:
      * <ol>
-     *     <li>Отсутствие заглавия документа (чтение начинается с ячейки A1)</li>
+     *     <li>Заголовок в документе должен быть размером в одну строку (чтение начинается с А2)</li>
      *     <li>Столбец с индексом indexCityName - город нахождения КП</li>
      *     <li>Столбец с индексом indexAddress - адрес контейнера</li>
      *     <li>Столбец с индексом indexLat - широта контейнера</li>
@@ -165,6 +164,7 @@ public class DataHandler {
                 countRows++;
             } else {
                 rowStr = iterateRow(row);
+
                 int indexCityName = 0;
                 int indexCode = 2;
                 int indexAddress = 3;
@@ -223,12 +223,12 @@ public class DataHandler {
             int indexLat = 2;
             int indexLon = 3;
             int indexAddress = 1;
-            int indexGarageID = 0;
+            int indexPolygonID = 0;
 
             // Извлекаем значения из строки
             double lat = Double.parseDouble(rowStr.split("~")[indexLat]);
             double lon = Double.parseDouble(rowStr.split("~")[indexLon]);
-            double id = Double.parseDouble(rowStr.split("~")[indexGarageID]);
+            double id = Double.parseDouble(rowStr.split("~")[indexPolygonID]);
             String address = rowStr.split("~")[indexAddress];
 
             // Создаем объект координат и полигон, добавляем его в список
@@ -290,7 +290,7 @@ public class DataHandler {
      * OneHot представление: массив состоящий из бинарных элементов, где 0 - отсутствие необходимости вывоза, 1 - необходимость вывоза.
      *
      * @param cnt        Порядковый номер дня. Например, второй четверг месяца (cnt = 2)
-     * @param combineDay Массив слов комбинированного графика вывоза [второй, четверг, месяца]
+     * @param combineDay Массив слов комбинированного графика вывоза [4,четверг]
      * @param nextMonth  Объект следуюшего месяца
      * @return Индекс дня месяца, в который необходимо осуществить вывоз
      */
@@ -353,13 +353,6 @@ public class DataHandler {
         return res;
     }
 
-    private static List<String> formatNumbers(List<String> numbers, String day) {
-        List<String> result = new ArrayList<>();
-        for (String number : numbers) {
-            result.add(number + ":" + day);
-        }
-        return result;
-    }
     /**
      * Метод предназначенный для преобразования графика вывоза к единому виду.
      * Виды записи графика вывоза:
@@ -389,7 +382,6 @@ public class DataHandler {
                 for(String  sc: partSc){
                     int cnt = Integer.parseInt(sc.split(":")[0]);
                     oneHot[getDayOfMonthForOccurrence(List.of(sc.split(":")), nextMonth, cnt) - 1] = 1;
-
                 }
             }
         }else{
@@ -400,34 +392,7 @@ public class DataHandler {
                     oneHot[numOfDay - 1] = 1;
                 } else if (day.toLowerCase().contains("ежед") || newSchedulePart.size() == 7) {
                     Arrays.fill(oneHot, (byte) 1);
-//            } else if (combineDay.size() == 1) {
-//                try {
-//                    int numberOfWeek = getNumberDayOnWeek(day);
-//                    for (int i = 0; i < countDays; i++) {
-//                        Date currentDate = nextMonth.getTime();
-//                        if (numberOfWeek == currentDate.getDay()) {
-//                            oneHot[currentDate.getDate() - 1] = 1;
-//                        }
-//                        nextMonth.add(Calendar.DATE, 1);
-//                    }
-//                    nextMonth.add(Calendar.DATE, -(nextMonth.getTime().getDate() - 1));
-//
-//                } catch (Exception e) {
-//                    System.out.println();
-//                }
-//            } else if (day.toLowerCase().contains("перв") || combineDay.get(1).contains("1")) {
-//                oneHot[getDayOfMonthForOccurrence(combineDay, nextMonth, 1) - 1] = 1;
-//            } else if (day.toLowerCase().contains("второ") || combineDay.get(1).contains("2")) {
-//                oneHot[getDayOfMonthForOccurrence(combineDay, nextMonth, 2) - 1] = 1;
-//            } else if (day.toLowerCase().contains("трет") || combineDay.get(1).contains("3")) {
-//                oneHot[getDayOfMonthForOccurrence(combineDay, nextMonth, 3) - 1] = 1;
-//            } else if (day.toLowerCase().contains("четверт") || combineDay.get(1).contains("4")) {
-//                oneHot[getDayOfMonthForOccurrence(combineDay, nextMonth, 4) - 1] = 1;
-//            } else if (day.toLowerCase().contains("заяв")) {
-//                // do nothing
-//            }
                 }else {
-
                     try {
                         int numberOfWeek = getNumberDayOnWeek(day);
                         for (int i = 0; i < countDays; i++) {
@@ -483,8 +448,11 @@ public class DataHandler {
      *     <li>Столбец с индексом indexTypeLoad - тип погрузки</li>
      *     <li>Столбец с индексом indexGarage - идентификатор гаража</li>
      *     <li>Столбец с индексом indexLoadCapacity - грузоподъемность</li>
+     *     <li>Столбец с индексом indexVolume - объем кузова</li>
      *     <li>Столбец с индексом indexFuel - тип топлива</li>
      *     <li>Столбец с индексом indexSchedule - график работы</li>
+     *     <li>Столбец с индексом indexCompactionRatio - коэффициент сжатия</li>
+     *     <li>Столбец с индексом indexConsum - потребление топлива</li>
      * </ol>
      * @return Список объектов типа Car
      * @throws IOException Ошибки возникшие при чтении файла
@@ -505,9 +473,9 @@ public class DataHandler {
                 int indexNumber = 2;
                 int indexTypeLoad = 7;
                 int indexGarage = 12;
+                int indexLoadCapacity= 15;
                 int indexVolume = 13;
                 int indexCompactionRatio= 14;
-                int indexLoadCapacity= 15;
                 int indexFuel = 17;
                 int indexSchedule = 18;
                 int indexConsum = 27;

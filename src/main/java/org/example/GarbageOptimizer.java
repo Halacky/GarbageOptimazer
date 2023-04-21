@@ -9,16 +9,13 @@ import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.util.EntityUtils;
-
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.net.HttpURLConnection;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.util.*;
 import java.util.List;
 import java.util.logging.*;
-import java.util.stream.Collectors;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import static org.example.DataHandler.create_csv;
@@ -281,8 +278,6 @@ public class GarbageOptimizer {
      */
     protected void findFcy(int numberDay) throws IOException {
 
-        System.out.println("Last group servicing not to end");
-
         for (int t = 1;t<=4;t++){
 
             createDistanceMatrix(numberDay, t);
@@ -296,7 +291,7 @@ public class GarbageOptimizer {
 
                 Car bestCar = null;
                 for (int i=0; i<3;i++){
-                    bestCar = getBestCar(Places.get(i),indexOfFcy, t,numberDay);
+                    bestCar = getBestCar(Places.get(i),indexOfFcy, t);
                     if (bestCar!=null){
                         break;
                     }
@@ -305,10 +300,6 @@ public class GarbageOptimizer {
                     break;
                 }
                 addRowInMatrix(CurrentDayContainers.get(indexOfFcy).getCoordinates());
-                if(CurrentDayContainers.size()>DistanceMatrix.get(0).size()){
-                    System.out.println();
-                }
-
                 servicingContainer(bestCar,indexOfFcy);
                 DistanceMatrix.remove(DistanceMatrix.size()-1);
 
@@ -340,7 +331,7 @@ public class GarbageOptimizer {
             double dist = EarthCalc.haversine.distance(objFrom, objTo);
             double dur = dist/1000/50;
             Double[] radius = {dist, dur};
-//            Double[] radius = calculateDistance(car.getCentroid(), container.getCoordinates());
+//            Double[] radius = calculateDistance(car.getCentroid(), container.getCoordinates()); //oms distance\time
             if (radius[0] > maxRadius) {
                 maxRadius = radius[0];
             }
@@ -392,9 +383,7 @@ public class GarbageOptimizer {
      * @param optimalGarages Список выбранных (по удаленности) гаражей
      * @return  Car - объект лучшей машины.
      */
-    private Car getBestCar(Place optimalGarages, int indexOfFcy, double typeOfGrab, int numOfDy) throws IOException {
-        double tmpMinM = Double.MAX_VALUE;
-        double distance;
+    private Car getBestCar(Place optimalGarages, int indexOfFcy, double typeOfGrab) throws IOException {
         Car bestCar = null;
         bestCar = getPreviousCar(optimalGarages, indexOfFcy);
         if(bestCar == null){
@@ -414,9 +403,7 @@ public class GarbageOptimizer {
     }
 
     private Car getPreviousCar(Place optimalGarages, int indexOfFcy){
-
         double tmpMinM = Double.MAX_VALUE;
-        double distance;
         Car bestCar = null;
         for (Car car: optimalGarages.getCars()) {
             for (Container container: car.getServicesContainers()){
@@ -429,9 +416,7 @@ public class GarbageOptimizer {
                             tmpMinM = bestCar.getM3();
                         }
                     }
-
                 }
-
             }
         }
         return bestCar;
@@ -485,7 +470,6 @@ public class GarbageOptimizer {
                     tmpMinM = bestCar.getM3();
                 }
             }
-
         }
         return bestCar;
     }
@@ -553,20 +537,6 @@ public class GarbageOptimizer {
 
         }
         return indexMin;
-    }
-    private void checkProximityToCentroid(int bestPolygonIndex, Car bestCar){
-        //TODO Найти ближайшие КП по близости центроиды
-        // Можно использовать для дозагрузки
-        Polygon polygon = Polygons.get(bestPolygonIndex);
-        Container lastServiceContainer = bestCar.getServicesContainers().get(bestCar.getServicesContainers().size()-1);
-        for (Coordinates coordinate: getCheckpoints(lastServiceContainer.getCoordinates(),polygon.getCoordinates())){
-            for(Container container:CurrentDayContainers){
-                if (!container.getIsCater()){
-
-                }
-            }
-        }
-
     }
 
     private List<Coordinates> getCheckpoints(Coordinates from, Coordinates to){
@@ -655,29 +625,23 @@ public class GarbageOptimizer {
                     removeTemporaryOT(indexOfFcy);
                     getNeighbors(car);
                 }else{
-                    double bestPolygonIndex = getBestPolygon(car.getCentroid()).get(0);
                     double distanceToPolygon = getBestPolygon(car.getCentroid()).get(1);
-                    Polygon bestPolygon = Polygons.get((int) bestPolygonIndex);
                     calculateWorkingTime(car, Math.ceil(car.getVolume()-car.getFreeVolume()),(distanceToPolygon*2)/1000/50);
                     LOGGER.log(Level.INFO,"Время в работе ПОСЛЕ ПОЛИГОНА: "+ car.getTimeInWork());
-
                     car.setFreeVolume(car.getVolume());
                     car.setInWork(true);
                     getNeighbors(car);
                 }
             }else{
-                double bestPolygonIndex = getBestPolygon(car.getCentroid()).get(0);
                 double distanceToPolygon = getBestPolygon(car.getCentroid()).get(1);
-                Polygon bestPolygon = Polygons.get((int) bestPolygonIndex);
                 calculateWorkingTime(car, distanceToPolygon);
                 LOGGER.log(Level.INFO,"Время в работе ПОСЛЕ ПОЛИГОНА: "+ car.getTimeInWork());
             }
         }
-
     }
 
     private void calculateWorkingTime(Car bestCar, double volume, double duration){
-        bestCar.setTimeInWork(bestCar.getTimeInWork() +duration + volume*0.1);
+        bestCar.setTimeInWork(bestCar.getTimeInWork() +duration);
     }
     private void calculateWorkingTime(Car bestCar, double distance){
         bestCar.setTimeInWork(bestCar.getTimeInWork() + distance/1000/50);
@@ -689,7 +653,6 @@ public class GarbageOptimizer {
      * @return  List Place - объекты самых ближайщих гаражей.
      */
     private List<Place> getOptimalCarPlace(int fcy){
-        List<Place> optimalPlace = new ArrayList<>();
         List<Double> arr = new ArrayList<>();
         for (int j = 0; j<DistanceMatrix.size();j++) {
             double current = DistanceMatrix.get(j).get(fcy)[0];
@@ -698,47 +661,6 @@ public class GarbageOptimizer {
         }
         Collections.sort(Places);
         return Places;
-    }
-
-    int partition(List<Double> arr, int low, int high)
-    {
-        Double pivot = arr.get(high);
-        int i = (low-1); // index of smaller element
-        for (int j=low; j<high; j++)
-        {
-            // If current element is smaller than or
-            // equal to pivot
-            if (arr.get(j) <= pivot)
-            {
-                i++;
-                // swap arr[i] and arr[j]
-                Double temp = arr.get(i);
-                arr.set(i, arr.get(j));
-                arr.set(j, temp);
-            }
-        }
-
-        // swap arr[i+1] and arr[high] (or pivot)
-        Double temp = arr.get(i + 1);
-        arr.set(i + 1, arr.get(high));
-        arr.set(high, temp);
-
-        return i+1;
-    }
-
-    void sort(List<Double> arr, int low, int high)
-    {
-        if (low < high)
-        {
-            /* pi is partitioning index, arr[pi] is
-              now at right place */
-            int pi = partition(arr, low, high);
-
-            // Recursively sort elements before
-            // partition and after partition
-            sort(arr, low, pi-1);
-            sort(arr, pi+1, high);
-        }
     }
 
     private List<Double> getBestPolygon(Coordinates<Double,Double> point) throws IOException {
@@ -776,43 +698,9 @@ public class GarbageOptimizer {
     private int getIndexOfLargest(List<Double> array )
     {
         if ( array == null || array.size() == 0 ) return -1;
-
         array.indexOf(Collections.max(array));
         int largest = array.indexOf(Collections.max(array));
         return largest;
-    }
-
-    /**
-     * Метод предназначенный для нахождения инедкса наименьшего значения в массиве.
-     * @param array Массив чисел
-     * @return  int - индекс наименьшего числа
-     */
-    private int getIndexOfSmallest(List<Double> array)
-    {
-        if (array == null || array.size() == 0) return -1;
-
-        int smallest = 0;
-        for (int i = 1; i < array.size(); i++)
-        {
-            double currentMetric = AllContainers.get(i).getAllVolume()/array.get(i);
-            double maxMetric = AllContainers.get(smallest).getAllVolume()/array.get(smallest);
-            if (currentMetric>maxMetric & array.get(i) > 0) {
-                smallest = i;
-            }
-        }
-        return smallest;
-    }
-
-    public void test() throws IOException {
-        for (Place g : Places) {
-            for (Container container : CurrentDayContainers) {
-                if (Objects.equals(container.getAddress(), "Ангарск, Южный массив, 34")){
-                    double distance = calculateDistance(g.getCoordinates(), container.getCoordinates())[0];//in meters
-                    System.out.println();
-                }
-            }
-        }
-
     }
 }
 // QA Что делать с Бодайбо, до них ехать 30+ часов, как их вывозят сейчас?
